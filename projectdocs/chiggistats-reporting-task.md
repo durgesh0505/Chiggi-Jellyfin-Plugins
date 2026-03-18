@@ -3,7 +3,7 @@
 ## Status
 
 Created on 2026-03-18. This file is the active implementation checklist for the `Chiggi Stats` reporting redesign and must be updated as work progresses.
-Implementation is in progress. The first backend and UI foundation pass is complete, `1b19998` proved that the prior namespace-only SortOrder patch was insufficient, and the approved local-sort fallback is now committed and pushed as `5f70b9b`, but local .NET build validation is still blocked in this environment.
+Implementation is in progress. The first backend and UI foundation pass is complete, the stable local-sort fallback is on `5f70b9b`, and the current blocker is plugin-repository install metadata because the `v1.0.2` `Chiggi Stats` manifest entry still contains `PLACEHOLDER_MD5`, but local .NET build validation is still blocked in this environment.
 
 ## Objective
 
@@ -57,6 +57,7 @@ Turn `Chiggi Stats` from a single playback dashboard into an admin-only reportin
 
 ## Remaining Work
 
+- [ ] Replace the `v1.0.2` `Chiggi Stats` placeholder checksum in `manifest.json` with the real MD5 and push it
 - [ ] Confirm that GitHub Actions passes for commit `5f70b9b`
 - [ ] Run a real `.NET` build and fix any Jellyfin API mismatches that static inspection did not catch
 - [ ] Validate the settings-page route and report-tab loading in a real Jellyfin server session
