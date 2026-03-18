@@ -3,9 +3,9 @@
   <PropertyGroup>
     <AssemblyName>Jellyfin.Plugin.ChiggiStats</AssemblyName>
     <RootNamespace>Jellyfin.Plugin.ChiggiStats</RootNamespace>
-    <Version>1.0.3.0</Version>
-    <AssemblyVersion>1.0.3.0</AssemblyVersion>
-    <FileVersion>1.0.3.0</FileVersion>
+    <Version>1.0.4.0</Version>
+    <AssemblyVersion>1.0.4.0</AssemblyVersion>
+    <FileVersion>1.0.4.0</FileVersion>
     <Description>Detailed playback statistics and reporting for Jellyfin with advanced filtering.</Description>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
@@ -47,16 +47,16 @@
   </ItemGroup>
 
   <!--
-    Jellyfin's AssemblyLoadContext probes for native libraries in the directory of the
-    requesting managed DLL (the plugin root), not in runtimes/{rid}/native/.
-    Copy all native binaries to the publish root so SQLite is found at runtime.
-  -->
-  <!--
-    Jellyfin's AssemblyLoadContext probes for native libraries in the plugin root directory.
-    Copy Linux (.so) and macOS (.dylib) native libs to the publish root so SQLite is found.
-    Windows native DLLs (.dll extension) are intentionally excluded — Jellyfin's plugin
-    scanner tries to load every *.dll in the plugin directory as a managed assembly, which
-    causes BadImageFormatException and disables the plugin when it encounters native DLLs.
+    Jellyfin's PluginManager.LoadAssemblies() scans the ENTIRE plugin directory tree
+    recursively for *.dll files and calls LoadFromAssemblyPath on every one. Any native
+    DLL anywhere in the tree (including runtimes/win-*/native/e_sqlite3.dll deep in
+    subdirectories) causes BadImageFormatException and disables the plugin.
+
+    Fix:
+      1. Copy Linux (.so) and macOS (.dylib) native libs to the publish root so that
+         Jellyfin's AssemblyLoadContext can resolve them for P/Invoke.
+      2. Delete the entire runtimes/ directory so no native *.dll files remain anywhere
+         in the plugin tree where Jellyfin's scanner can find them.
   -->
   <Target Name="FlattenNativeLibraries" AfterTargets="Publish">
     <ItemGroup>
@@ -64,6 +64,7 @@
       <_NativeLibs Include="$(PublishDir)runtimes/*/native/*.dylib" />
     </ItemGroup>
     <Copy SourceFiles="@(_NativeLibs)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
+    <RemoveDir Directories="$(PublishDir)runtimes" />
   </Target>
 
 </Project>
