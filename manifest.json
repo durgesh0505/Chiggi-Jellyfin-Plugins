@@ -12,8 +12,8 @@
         "changelog": "Fix: SQLite native library now found correctly in Jellyfin plugin context (no more Malfunctioned). Fix: database initialisation split into separate statements to prevent startup crash.",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/durgesh0505/Chiggi-Jellyfin-Plugins/releases/download/v1.0.1/Jellyfin.Plugin.ChiggiStats.zip",
-        "checksum": "PLACEHOLDER_MD5",
-        "timestamp": "2026-03-18T00:00:00Z"
+        "checksum": "c827313259347096b68d9845fdb6a9d2",
+        "timestamp": "2026-03-18T19:01:40Z"
       },
       {
         "version": "1.0.0.0",
@@ -38,8 +38,8 @@
         "changelog": "Fix: restored Trakt settings/configuration page button (missing RootNamespace caused embedded resource path mismatch).",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/durgesh0505/Chiggi-Jellyfin-Plugins/releases/download/v1.0.1/Jellyfin.Plugin.Trakt.zip",
-        "checksum": "PLACEHOLDER_MD5",
-        "timestamp": "2026-03-18T00:00:00Z"
+        "checksum": "968fe235a784222c94188380ec1d5bb7",
+        "timestamp": "2026-03-18T19:01:40Z"
       },
       {
         "version": "27.1.0.0",
