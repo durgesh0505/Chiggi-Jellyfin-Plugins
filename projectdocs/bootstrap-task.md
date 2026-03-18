@@ -14,8 +14,9 @@ Compare Claude Code's handoff in `Talk.md` against the actual filesystem.
 Reassess build blockers, security issues, and repository-level gaps.
 
 ## Immediate Next Actions
-Monitor GitHub Actions for commit `eed8263`.
-Confirm that `ChiggiStats` now compiles and that the `Trakt` StyleCop warnings are fully suppressed.
+Patch the Jellyfin API mismatches reported by the latest CI run.
+Override the `ChiggiStats` analyzer configuration so its backlog is downgraded to warnings instead of blocking the build.
+Push a follow-up fix and re-run GitHub Actions.
 After the first successful release, update `manifest.json` with real `sourceUrl` and `checksum` values.
 
 ## Status
@@ -33,6 +34,8 @@ Implementation is complete for the approved repo-side fixes.
 The build and publish workflows now zip full publish outputs instead of only `*.dll`, and the release workflow now prints checksums instead of pretending to modify `manifest.json`.
 `README.md` and `docs/NEXT_STEPS.md` now match the actual archive layout and the manual manifest-update release flow.
 The fix set has been committed and pushed to `origin/main` as `eed8263`.
+The latest CI run for the follow-up push exposed three real compile/API mismatches that remain unresolved: `HasPermission` and `PermissionKind` do not exist on the current Jellyfin user API, and `Episode.GetSeasonNumber()` does not exist in `ChiggiStats`.
+The same CI run also proved that `ChiggiStats` still has a large StyleCop and .NET analyzer backlog because its project file still treats warnings as errors and does not suppress the same warning families that were already neutralized for `Trakt`.
 
 ## Notes
 There are no PowerShell scripts in the current directory, so there is nothing to document for PowerShell at this stage.

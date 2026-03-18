@@ -73,7 +73,7 @@ public sealed class PlaybackTracker : IHostedService, IDisposable
         if (args.Item is MediaBrowser.Controller.Entities.TV.Episode episode)
         {
             seriesName = episode.Series?.Name;
-            seasonNumber = episode.GetSeasonNumber();
+            seasonNumber = episode.ParentIndexNumber != 0 ? episode.ParentIndexNumber ?? 1 : episode.ParentIndexNumber;
             episodeNumber = episode.IndexNumber;
         }
 

@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Net.Mime;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Jellyfin.Data;
 using MediaBrowser.Common.Api;
 using MediaBrowser.Controller;
 using MediaBrowser.Controller.Library;
@@ -241,6 +242,6 @@ public class TraktController : ControllerBase
         }
 
         var caller = _userManager.GetUserById(callerGuid);
-        return caller?.HasPermission(MediaBrowser.Model.Users.PermissionKind.IsAdministrator) == true;
+        return caller?.HasPermission(Jellyfin.Database.Implementations.Enums.PermissionKind.IsAdministrator) == true;
     }
 }

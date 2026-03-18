@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Net.Mime;
 using System.Security.Claims;
+using Jellyfin.Data;
 using Jellyfin.Plugin.ChiggiStats.Data;
 using Jellyfin.Plugin.ChiggiStats.Models;
 using MediaBrowser.Controller.Library;
@@ -176,7 +177,7 @@ public class StatsController : ControllerBase
         if (Guid.TryParse(claimUserId, out var callerGuid))
         {
             var caller = _userManager.GetUserById(callerGuid);
-            if (caller?.HasPermission(MediaBrowser.Model.Users.PermissionKind.IsAdministrator) == true)
+            if (caller?.HasPermission(Jellyfin.Database.Implementations.Enums.PermissionKind.IsAdministrator) == true)
             {
                 return string.IsNullOrEmpty(requestedUserId) ? claimUserId : requestedUserId;
             }
