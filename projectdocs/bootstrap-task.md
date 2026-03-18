@@ -14,7 +14,7 @@ Compare Claude Code's handoff in `Talk.md` against the actual filesystem.
 Reassess build blockers, security issues, and repository-level gaps.
 
 ## Immediate Next Actions
-Push these changes and re-run GitHub Actions.
+Monitor GitHub Actions for commit `eed8263`.
 Confirm that `ChiggiStats` now compiles and that the `Trakt` StyleCop warnings are fully suppressed.
 After the first successful release, update `manifest.json` with real `sourceUrl` and `checksum` values.
 
@@ -32,6 +32,7 @@ Implementation is complete for the approved repo-side fixes.
 `Jellyfin.Plugin.Trakt.csproj` now suppresses the known imported-upstream StyleCop warning set so CI signal is not buried in non-functional lint noise.
 The build and publish workflows now zip full publish outputs instead of only `*.dll`, and the release workflow now prints checksums instead of pretending to modify `manifest.json`.
 `README.md` and `docs/NEXT_STEPS.md` now match the actual archive layout and the manual manifest-update release flow.
+The fix set has been committed and pushed to `origin/main` as `eed8263`.
 
 ## Notes
 There are no PowerShell scripts in the current directory, so there is nothing to document for PowerShell at this stage.
