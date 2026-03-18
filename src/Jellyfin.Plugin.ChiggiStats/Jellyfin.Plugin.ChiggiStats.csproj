@@ -3,9 +3,9 @@
   <PropertyGroup>
     <AssemblyName>Jellyfin.Plugin.ChiggiStats</AssemblyName>
     <RootNamespace>Jellyfin.Plugin.ChiggiStats</RootNamespace>
-    <Version>1.0.2.0</Version>
-    <AssemblyVersion>1.0.2.0</AssemblyVersion>
-    <FileVersion>1.0.2.0</FileVersion>
+    <Version>1.0.3.0</Version>
+    <AssemblyVersion>1.0.3.0</AssemblyVersion>
+    <FileVersion>1.0.3.0</FileVersion>
     <Description>Detailed playback statistics and reporting for Jellyfin with advanced filtering.</Description>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
@@ -51,9 +51,17 @@
     requesting managed DLL (the plugin root), not in runtimes/{rid}/native/.
     Copy all native binaries to the publish root so SQLite is found at runtime.
   -->
+  <!--
+    Jellyfin's AssemblyLoadContext probes for native libraries in the plugin root directory.
+    Copy Linux (.so) and macOS (.dylib) native libs to the publish root so SQLite is found.
+    Windows native DLLs (.dll extension) are intentionally excluded — Jellyfin's plugin
+    scanner tries to load every *.dll in the plugin directory as a managed assembly, which
+    causes BadImageFormatException and disables the plugin when it encounters native DLLs.
+  -->
   <Target Name="FlattenNativeLibraries" AfterTargets="Publish">
     <ItemGroup>
-      <_NativeLibs Include="$(PublishDir)runtimes/*/native/*" />
+      <_NativeLibs Include="$(PublishDir)runtimes/*/native/*.so" />
+      <_NativeLibs Include="$(PublishDir)runtimes/*/native/*.dylib" />
     </ItemGroup>
     <Copy SourceFiles="@(_NativeLibs)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
   </Target>
