@@ -21,7 +21,7 @@ internal sealed class ItemIdEqualityComparer<T> : IEqualityComparer<T>
     }
 
     /// <inheritdoc />
-    public bool Equals(T? x, T? y)
+    public bool Equals(T x, T y)
     {
         if (x is null && y is null)
         {
