@@ -1,0 +1,64 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["**.md", "docs/**"]
+  pull_request:
+    branches: [main]
+    paths-ignore: ["**.md", "docs/**"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build & Package Plugins
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Restore dependencies
+        run: dotnet restore Chiggi.Jellyfin.Plugins.sln
+
+      - name: Build (Release)
+        run: dotnet build Chiggi.Jellyfin.Plugins.sln --no-restore --configuration Release
+
+      - name: Publish ChiggiStats
+        run: |
+          dotnet publish src/Jellyfin.Plugin.ChiggiStats/Jellyfin.Plugin.ChiggiStats.csproj \
+            --no-restore --configuration Release \
+            --output artifacts/ChiggiStats
+
+      - name: Publish Trakt
+        run: |
+          dotnet publish src/Jellyfin.Plugin.Trakt/Jellyfin.Plugin.Trakt.csproj \
+            --no-restore --configuration Release \
+            --output artifacts/Trakt
+
+      - name: Package ChiggiStats
+        run: |
+          mkdir -p releases
+          cd artifacts/ChiggiStats
+          zip -j ../../releases/Jellyfin.Plugin.ChiggiStats.zip *.dll
+          cd ../..
+          md5sum releases/Jellyfin.Plugin.ChiggiStats.zip > releases/Jellyfin.Plugin.ChiggiStats.zip.md5
+
+      - name: Package Trakt
+        run: |
+          cd artifacts/Trakt
+          zip -j ../../releases/Jellyfin.Plugin.Trakt.zip *.dll
+          cd ../..
+          md5sum releases/Jellyfin.Plugin.Trakt.zip > releases/Jellyfin.Plugin.Trakt.zip.md5
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-zips
+          path: releases/*.zip
+          retention-days: 30

@@ -1,0 +1,62 @@
+name: Publish Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    name: Build & Attach to Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Restore dependencies
+        run: dotnet restore Chiggi.Jellyfin.Plugins.sln
+
+      - name: Publish ChiggiStats
+        run: |
+          dotnet publish src/Jellyfin.Plugin.ChiggiStats/Jellyfin.Plugin.ChiggiStats.csproj \
+            --no-restore --configuration Release \
+            --output artifacts/ChiggiStats
+
+      - name: Publish Trakt
+        run: |
+          dotnet publish src/Jellyfin.Plugin.Trakt/Jellyfin.Plugin.Trakt.csproj \
+            --no-restore --configuration Release \
+            --output artifacts/Trakt
+
+      - name: Package plugins
+        run: |
+          mkdir -p releases
+          cd artifacts/ChiggiStats && zip -j ../../releases/Jellyfin.Plugin.ChiggiStats.zip *.dll && cd ../..
+          cd artifacts/Trakt       && zip -j ../../releases/Jellyfin.Plugin.Trakt.zip *.dll       && cd ../..
+          md5sum releases/Jellyfin.Plugin.ChiggiStats.zip | awk '{print $1}' > releases/ChiggiStats.md5
+          md5sum releases/Jellyfin.Plugin.Trakt.zip       | awk '{print $1}' > releases/Trakt.md5
+
+      - name: Attach to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            releases/Jellyfin.Plugin.ChiggiStats.zip
+            releases/Jellyfin.Plugin.Trakt.zip
+            releases/ChiggiStats.md5
+            releases/Trakt.md5
+
+      - name: Update manifest checksums
+        run: |
+          STATS_MD5=$(cat releases/ChiggiStats.md5)
+          TRAKT_MD5=$(cat releases/Trakt.md5)
+          sed -i "s/PLACEHOLDER_MD5_STATS/$STATS_MD5/g" manifest.json
+          sed -i "s/PLACEHOLDER_MD5_TRAKT/$TRAKT_MD5/g" manifest.json
+          echo "Checksums updated in manifest.json"

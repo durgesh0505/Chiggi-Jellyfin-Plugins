@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Chiggi Stats - Settings</title>
+</head>
+<body>
+<div id="ChiggiStatsConfigPage" data-role="page" class="page libraryPage noSecondaryNavPage">
+    <div data-role="content">
+        <div class="content-primary">
+            <div class="verticalSection">
+                <div class="sectionTitleContainer flex align-items-center">
+                    <h2 class="sectionTitle">Chiggi Stats - Settings</h2>
+                </div>
+            </div>
+
+            <form id="ChiggiStatsConfigForm">
+                <div class="inputContainer">
+                    <label class="inputLabel" for="EnableSqliteTracking">Enable playback tracking</label>
+                    <input type="checkbox" id="EnableSqliteTracking" is="emby-checkbox" />
+                    <div class="fieldDescription">Records every playback session to a local SQLite database.</div>
+                </div>
+
+                <div class="inputContainer">
+                    <label class="inputLabel" for="IncludeActivityLogData">Include Jellyfin activity log data</label>
+                    <input type="checkbox" id="IncludeActivityLogData" is="emby-checkbox" />
+                    <div class="fieldDescription">Supplements tracking data with entries from Jellyfin's built-in activity log. Useful for viewing history before this plugin was installed.</div>
+                </div>
+
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="DataRetentionDays">Data retention (days)</label>
+                    <input id="DataRetentionDays" type="number" min="0" max="3650" is="emby-input" />
+                    <div class="fieldDescription">Number of days to keep playback data. Set to 0 to keep forever.</div>
+                </div>
+
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="MinimumPlaybackSeconds">Minimum playback duration (seconds)</label>
+                    <input id="MinimumPlaybackSeconds" type="number" min="0" max="3600" is="emby-input" />
+                    <div class="fieldDescription">Sessions shorter than this are not recorded. Prevents accidental taps from polluting history.</div>
+                </div>
+
+                <div>
+                    <button is="emby-button" type="submit" class="raised button-submit block">
+                        <span>Save</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    var ChiggiStatsConfig = {
+        pluginId: 'a8e82834-4b5e-4b16-a7c4-6ea5d3a4e312',
+
+        loadConfig: function() {
+            ApiClient.getPluginConfiguration(this.pluginId).then(function(config) {
+                document.getElementById('EnableSqliteTracking').checked = config.EnableSqliteTracking !== false;
+                document.getElementById('IncludeActivityLogData').checked = config.IncludeActivityLogData !== false;
+                document.getElementById('DataRetentionDays').value = config.DataRetentionDays || 365;
+                document.getElementById('MinimumPlaybackSeconds').value = config.MinimumPlaybackSeconds || 30;
+                Dashboard.hideLoadingMsg();
+            });
+        },
+
+        saveConfig: function(e) {
+            e.preventDefault();
+            Dashboard.showLoadingMsg();
+
+            ApiClient.getPluginConfiguration(ChiggiStatsConfig.pluginId).then(function(config) {
+                config.EnableSqliteTracking = document.getElementById('EnableSqliteTracking').checked;
+                config.IncludeActivityLogData = document.getElementById('IncludeActivityLogData').checked;
+                config.DataRetentionDays = parseInt(document.getElementById('DataRetentionDays').value, 10) || 365;
+                config.MinimumPlaybackSeconds = parseInt(document.getElementById('MinimumPlaybackSeconds').value, 10) || 30;
+
+                ApiClient.updatePluginConfiguration(ChiggiStatsConfig.pluginId, config).then(function() {
+                    Dashboard.processPluginConfigurationUpdateResult();
+                });
+            });
+        }
+    };
+
+    document.addEventListener('viewshow', function() {
+        Dashboard.showLoadingMsg();
+        ChiggiStatsConfig.loadConfig();
+        document.getElementById('ChiggiStatsConfigForm').addEventListener('submit', ChiggiStatsConfig.saveConfig);
+    });
+</script>
+</body>
+</html>

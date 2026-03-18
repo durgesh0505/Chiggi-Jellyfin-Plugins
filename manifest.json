@@ -1,0 +1,38 @@
+[
+  {
+    "guid": "a8e82834-4b5e-4b16-a7c4-6ea5d3a4e312",
+    "name": "Chiggi Stats",
+    "description": "Detailed playback statistics and reporting for Jellyfin. Tracks what every user is watching, how long they watch, and provides a filterable dashboard accessible directly inside Jellyfin. Supports filtering by user, date range, and media type. Data is stored in a local SQLite database with configurable retention.",
+    "overview": "Detailed playback statistics with user/date/media filters.",
+    "owner": "durgesh0505",
+    "category": "General",
+    "versions": [
+      {
+        "version": "1.0.0.0",
+        "changelog": "Initial release. Playback tracking with SQLite storage, activity log integration, and in-Jellyfin stats dashboard.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/durgesh0505/Chiggi-Jellyfin-Plugins/releases/download/v1.0.0/Jellyfin.Plugin.ChiggiStats.zip",
+        "checksum": "PLACEHOLDER_MD5",
+        "timestamp": "2026-03-18T00:00:00Z"
+      }
+    ]
+  },
+  {
+    "guid": "4fe3201e-d6ae-4f2e-8917-e12bda571281",
+    "name": "Trakt",
+    "description": "Sync your Jellyfin library to trakt.tv and scrobble your watch status. This is a fixed fork of the official Jellyfin Trakt plugin addressing 409 Conflict errors, rate-limit handling, duplicate watch history entries, TV show scrobbling failures in Jellyfin 10.11, and more.",
+    "overview": "Sync library and scrobble to trakt.tv — fixed fork with bug fixes.",
+    "owner": "durgesh0505",
+    "category": "General",
+    "versions": [
+      {
+        "version": "27.1.0.0",
+        "changelog": "Fork of official v27 with fixes: #265 rate-limit HasFlag bug, #266 409 Conflict crash, #226 duplicate history (HashSet dedup), #258 null Series on TV scrobble.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/durgesh0505/Chiggi-Jellyfin-Plugins/releases/download/v1.0.0/Jellyfin.Plugin.Trakt.zip",
+        "checksum": "PLACEHOLDER_MD5",
+        "timestamp": "2026-03-18T00:00:00Z"
+      }
+    ]
+  }
+]

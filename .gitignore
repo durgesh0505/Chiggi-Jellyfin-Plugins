@@ -1,0 +1,38 @@
+## .NET / C#
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.ncrunchproject
+*.ncrunchsolution
+
+## Rider / JetBrains
+.idea/
+*.DotSettings.user
+
+## VS Code
+.vscode/
+
+## Build output
+artifacts/
+releases/
+
+## NuGet
+*.nupkg
+.nuget/
+
+## OS
+.DS_Store
+Thumbs.db
+
+## Test results
+TestResults/
+coverage/
+*.trx
+*.coveragexml
+
+## SQLite (never commit plugin database files)
+*.db
+*.db-wal
+*.db-shm

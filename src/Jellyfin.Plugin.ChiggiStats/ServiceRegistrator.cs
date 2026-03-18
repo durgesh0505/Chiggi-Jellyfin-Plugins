@@ -1,0 +1,20 @@
+using Jellyfin.Plugin.ChiggiStats.Data;
+using Jellyfin.Plugin.ChiggiStats.Tracking;
+using MediaBrowser.Common.Plugins;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Jellyfin.Plugin.ChiggiStats;
+
+/// <summary>
+/// Registers Chiggi Stats services with Jellyfin's DI container.
+/// </summary>
+public class PluginServiceRegistrator : IPluginServiceRegistrator
+{
+    /// <inheritdoc />
+    public void RegisterServices(IServiceCollection serviceCollection, IApplicationHost applicationHost)
+    {
+        serviceCollection.AddSingleton<SqliteRepository>();
+        serviceCollection.AddSingleton<ActivityLogRepository>();
+        serviceCollection.AddHostedService<PlaybackTracker>();
+    }
+}

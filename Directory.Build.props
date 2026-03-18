@@ -1,0 +1,12 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+    <Authors>durgesh0505</Authors>
+    <RepositoryUrl>https://github.com/durgesh0505/Chiggi-Jellyfin-Plugins</RepositoryUrl>
+  </PropertyGroup>
+</Project>

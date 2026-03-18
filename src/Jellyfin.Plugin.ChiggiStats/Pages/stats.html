@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Chiggi Stats</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        .cs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
+        .cs-card {
+            background: rgba(255,255,255,.05);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+        .cs-card-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: #00a4dc;
+        }
+        .cs-card-label {
+            font-size: .85em;
+            opacity: .7;
+            margin-top: 4px;
+        }
+        .cs-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: flex-end;
+            margin: 16px 0;
+        }
+        .cs-filters label { display: block; font-size:.8em; opacity:.7; margin-bottom:4px; }
+        .cs-filters select,
+        .cs-filters input[type=date] {
+            background: rgba(255,255,255,.07);
+            border: 1px solid rgba(255,255,255,.15);
+            border-radius: 4px;
+            color: inherit;
+            padding: 6px 10px;
+            font-size: .9em;
+        }
+        .cs-chart-wrap { margin: 24px 0; max-height: 260px; }
+        .cs-table { width: 100%; border-collapse: collapse; font-size: .9em; }
+        .cs-table th { text-align: left; padding: 8px 12px; border-bottom: 2px solid rgba(255,255,255,.1); opacity:.7; font-weight:600; }
+        .cs-table td { padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,.05); }
+        .cs-table tr:hover td { background: rgba(255,255,255,.04); }
+        .cs-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: .75em;
+            font-weight: 600;
+        }
+        .cs-badge-movie   { background: rgba(0,164,220,.25); color:#00a4dc; }
+        .cs-badge-episode { background: rgba(82,196,26,.25);  color:#52c41a; }
+        .cs-badge-audio   { background: rgba(250,173,20,.25); color:#faad14; }
+        .cs-badge-other   { background: rgba(255,255,255,.12); color:#ccc; }
+        .cs-pagination { display:flex; gap:8px; align-items:center; margin:16px 0; }
+        .cs-section { margin-top: 32px; }
+        .cs-section h3 { margin-bottom: 12px; font-size:1em; opacity:.8; font-weight:600; text-transform:uppercase; letter-spacing:.05em; }
+        .cs-empty { text-align:center; padding:40px; opacity:.5; }
+    </style>
+</head>
+<body>
+<div id="ChiggiStatsPage" data-role="page" class="page libraryPage noSecondaryNavPage">
+    <div data-role="content">
+        <div class="content-primary">
+            <div class="verticalSection">
+                <div class="sectionTitleContainer flex align-items-center">
+                    <h2 class="sectionTitle">Chiggi Stats</h2>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="cs-filters">
+                <div>
+                    <label for="cs-user">User</label>
+                    <select id="cs-user">
+                        <option value="">All Users</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="cs-media-type">Media Type</label>
+                    <select id="cs-media-type">
+                        <option value="">All</option>
+                        <option value="Movie">Movies</option>
+                        <option value="Episode">Episodes</option>
+                        <option value="Audio">Music</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="cs-start">From</label>
+                    <input type="date" id="cs-start" />
+                </div>
+                <div>
+                    <label for="cs-end">To</label>
+                    <input type="date" id="cs-end" />
+                </div>
+                <div>
+                    <button id="cs-apply" is="emby-button" class="raised">Apply</button>
+                </div>
+                <div>
+                    <button id="cs-reset" is="emby-button">Reset</button>
+                </div>
+            </div>
+
+            <!-- Summary cards -->
+            <div class="cs-grid" id="cs-summary-grid">
+                <div class="cs-card"><div class="cs-card-value" id="cs-total-hours">—</div><div class="cs-card-label">Hours Watched</div></div>
+                <div class="cs-card"><div class="cs-card-value" id="cs-total-sessions">—</div><div class="cs-card-label">Sessions</div></div>
+                <div class="cs-card"><div class="cs-card-value" id="cs-movie-count">—</div><div class="cs-card-label">Movies</div></div>
+                <div class="cs-card"><div class="cs-card-value" id="cs-episode-count">—</div><div class="cs-card-label">Episodes</div></div>
+            </div>
+
+            <!-- Watch time chart -->
+            <div class="cs-section">
+                <h3>Watch Time by Day</h3>
+                <div class="cs-chart-wrap">
+                    <canvas id="cs-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Top items -->
+            <div class="cs-section">
+                <h3>Most Watched</h3>
+                <table class="cs-table" id="cs-top-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Title</th>
+                            <th>Type</th>
+                            <th>Plays</th>
+                            <th>Total Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cs-top-body">
+                        <tr><td colspan="5" class="cs-empty">Loading…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Activity log -->
+            <div class="cs-section">
+                <h3>Recent Activity</h3>
+                <table class="cs-table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Title</th>
+                            <th>Type</th>
+                            <th>Duration</th>
+                            <th>Date</th>
+                            <th>Client</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cs-activity-body">
+                        <tr><td colspan="6" class="cs-empty">Loading…</td></tr>
+                    </tbody>
+                </table>
+                <div class="cs-pagination">
+                    <button id="cs-prev" is="emby-button" disabled>‹ Prev</button>
+                    <span id="cs-page-info">—</span>
+                    <button id="cs-next" is="emby-button" disabled>Next ›</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+(function () {
+    'use strict';
+
+    var PAGE_SIZE = 50;
+    var state = { offset: 0, total: 0 };
+    var chartInstance = null;
+
+    function formatMinutes(mins) {
+        if (mins < 60) return mins + 'm';
+        var h = Math.floor(mins / 60);
+        var m = mins % 60;
+        return m > 0 ? h + 'h ' + m + 'm' : h + 'h';
+    }
+
+    function formatDate(iso) {
+        if (!iso) return '—';
+        var d = new Date(iso);
+        return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function typeBadge(type) {
+        var t = (type || '').toLowerCase();
+        var cls = t === 'movie' ? 'cs-badge-movie' : t === 'episode' ? 'cs-badge-episode' : t === 'audio' ? 'cs-badge-audio' : 'cs-badge-other';
+        return '<span class="cs-badge ' + cls + '">' + (type || 'Unknown') + '</span>';
+    }
+
+    function getFilters() {
+        return {
+            userId: document.getElementById('cs-user').value || undefined,
+            mediaType: document.getElementById('cs-media-type').value || undefined,
+            startDate: document.getElementById('cs-start').value || undefined,
+            endDate: document.getElementById('cs-end').value || undefined
+        };
+    }
+
+    function buildUrl(path, params) {
+        var url = ApiClient.getUrl(path);
+        var qs = Object.entries(params)
+            .filter(function (e) { return e[1] !== undefined && e[1] !== ''; })
+            .map(function (e) { return encodeURIComponent(e[0]) + '=' + encodeURIComponent(e[1]); })
+            .join('&');
+        return qs ? url + '?' + qs : url;
+    }
+
+    function apiFetch(url) {
+        return fetch(url, {
+            headers: { 'Authorization': 'MediaBrowser Token="' + ApiClient.accessToken() + '"' }
+        }).then(function (r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+        });
+    }
+
+    function loadUsers() {
+        ApiClient.getUsers().then(function (users) {
+            var sel = document.getElementById('cs-user');
+            // Keep the "All Users" option, add rest
+            users.forEach(function (u) {
+                var opt = document.createElement('option');
+                opt.value = u.Id;
+                opt.textContent = u.Name;
+                sel.appendChild(opt);
+            });
+        }).catch(function () {
+            // Non-admin: user selector stays hidden / single option
+        });
+    }
+
+    function loadSummary() {
+        var f = getFilters();
+        var url = buildUrl('ChiggiStats/summary', f);
+        apiFetch(url).then(function (data) {
+            document.getElementById('cs-total-hours').textContent = data.totalWatchTimeHours;
+            document.getElementById('cs-total-sessions').textContent = data.totalSessions;
+            document.getElementById('cs-movie-count').textContent = data.movieCount;
+            document.getElementById('cs-episode-count').textContent = data.episodeCount;
+            renderChart(data.watchTimeByDay || []);
+            renderTopItems(data.topItems || []);
+        }).catch(function (err) {
+            console.error('Chiggi Stats summary error:', err);
+        });
+    }
+
+    function renderChart(days) {
+        var ctx = document.getElementById('cs-chart').getContext('2d');
+        if (chartInstance) { chartInstance.destroy(); }
+        chartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: days.map(function (d) { return d.date; }),
+                datasets: [{
+                    label: 'Minutes',
+                    data: days.map(function (d) { return d.minutes; }),
+                    backgroundColor: 'rgba(0,164,220,0.5)',
+                    borderColor: '#00a4dc',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: '#aaa', maxTicksLimit: 14 }, grid: { color: 'rgba(255,255,255,.05)' } },
+                    y: { ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,.05)' } }
+                }
+            }
+        });
+    }
+
+    function renderTopItems(items) {
+        var tbody = document.getElementById('cs-top-body');
+        if (!items.length) {
+            tbody.innerHTML = '<tr><td colspan="5" class="cs-empty">No data yet. Start watching something!</td></tr>';
+            return;
+        }
+        tbody.innerHTML = items.map(function (item, i) {
+            var title = item.seriesName ? item.seriesName : item.itemName;
+            return '<tr>' +
+                '<td>' + (i + 1) + '</td>' +
+                '<td>' + title + '</td>' +
+                '<td>' + typeBadge(item.mediaType) + '</td>' +
+                '<td>' + item.watchCount + '</td>' +
+                '<td>' + formatMinutes(item.totalMinutes) + '</td>' +
+                '</tr>';
+        }).join('');
+    }
+
+    function loadActivity() {
+        var f = getFilters();
+        var params = Object.assign({}, f, { limit: PAGE_SIZE, offset: state.offset });
+        var url = buildUrl('ChiggiStats/activity', params);
+        apiFetch(url).then(function (data) {
+            state.total = data.totalCount;
+            renderActivity(data.items || []);
+            updatePagination();
+        }).catch(function (err) {
+            console.error('Chiggi Stats activity error:', err);
+            document.getElementById('cs-activity-body').innerHTML =
+                '<tr><td colspan="6" class="cs-empty">Failed to load data.</td></tr>';
+        });
+    }
+
+    function renderActivity(items) {
+        var tbody = document.getElementById('cs-activity-body');
+        if (!items.length) {
+            tbody.innerHTML = '<tr><td colspan="6" class="cs-empty">No playback history found for the selected filters.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = items.map(function (item) {
+            var title = item.seriesName
+                ? item.seriesName + ' S' + (item.seasonNumber || '?') + 'E' + (item.episodeNumber || '?') + ' – ' + item.itemName
+                : item.itemName;
+            return '<tr>' +
+                '<td>' + (item.userName || '—') + '</td>' +
+                '<td>' + title + '</td>' +
+                '<td>' + typeBadge(item.mediaType) + '</td>' +
+                '<td>' + formatMinutes(Math.round(item.durationMinutes)) + '</td>' +
+                '<td>' + formatDate(item.startTime) + '</td>' +
+                '<td>' + (item.clientName || '—') + '</td>' +
+                '</tr>';
+        }).join('');
+    }
+
+    function updatePagination() {
+        var totalPages = Math.max(1, Math.ceil(state.total / PAGE_SIZE));
+        var currentPage = Math.floor(state.offset / PAGE_SIZE) + 1;
+        document.getElementById('cs-page-info').textContent = 'Page ' + currentPage + ' of ' + totalPages + '  (' + state.total + ' total)';
+        document.getElementById('cs-prev').disabled = state.offset === 0;
+        document.getElementById('cs-next').disabled = state.offset + PAGE_SIZE >= state.total;
+    }
+
+    function refresh() {
+        state.offset = 0;
+        loadSummary();
+        loadActivity();
+    }
+
+    // Set default date range to last 30 days
+    function setDefaultDates() {
+        var now = new Date();
+        var past = new Date(now);
+        past.setDate(past.getDate() - 30);
+        document.getElementById('cs-end').value = now.toISOString().slice(0, 10);
+        document.getElementById('cs-start').value = past.toISOString().slice(0, 10);
+    }
+
+    document.addEventListener('viewshow', function () {
+        Dashboard.showLoadingMsg();
+        setDefaultDates();
+        loadUsers();
+        refresh();
+        Dashboard.hideLoadingMsg();
+
+        document.getElementById('cs-apply').addEventListener('click', refresh);
+        document.getElementById('cs-reset').addEventListener('click', function () {
+            document.getElementById('cs-user').value = '';
+            document.getElementById('cs-media-type').value = '';
+            setDefaultDates();
+            refresh();
+        });
+        document.getElementById('cs-prev').addEventListener('click', function () {
+            if (state.offset >= PAGE_SIZE) {
+                state.offset -= PAGE_SIZE;
+                loadActivity();
+            }
+        });
+        document.getElementById('cs-next').addEventListener('click', function () {
+            if (state.offset + PAGE_SIZE < state.total) {
+                state.offset += PAGE_SIZE;
+                loadActivity();
+            }
+        });
+    });
+}());
+</script>
+</body>
+</html>
