@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Globalization;
 using Jellyfin.Plugin.ChiggiStats.Models;
 using MediaBrowser.Common.Configuration;
 using Microsoft.Data.Sqlite;
@@ -239,6 +240,96 @@ public sealed class SqliteRepository : IDisposable
     }
 
     /// <summary>
+    /// Returns playback totals grouped by user.
+    /// </summary>
+    /// <returns>User playback summaries keyed by Jellyfin user ID.</returns>
+    public IReadOnlyList<UserPlaybackSummary> GetUserPlaybackSummaries()
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = @"
+            SELECT UserId,
+                   UserName,
+                   COUNT(*) AS SessionCount,
+                   COALESCE(SUM(PlaybackDurationTicks), 0) AS TotalTicks,
+                   MAX(StartTime) AS LastSeen
+            FROM PlaybackEvents
+            GROUP BY UserId, UserName
+            ORDER BY UserName ASC";
+
+        var result = new List<UserPlaybackSummary>();
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            result.Add(new UserPlaybackSummary
+            {
+                UserId = reader.GetString(0),
+                UserName = reader.GetString(1),
+                SessionCount = reader.GetInt32(2),
+                TotalTicks = reader.GetInt64(3),
+                LastSeen = reader.IsDBNull(4)
+                    ? null
+                    : DateTime.Parse(reader.GetString(4), null, System.Globalization.DateTimeStyles.RoundtripKind),
+            });
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Returns playback totals grouped by device and client.
+    /// </summary>
+    /// <param name="limit">Maximum rows to return.</param>
+    /// <param name="offset">Rows to skip.</param>
+    /// <returns>Device playback summaries.</returns>
+    public IReadOnlyList<DevicePlaybackSummary> GetDevicePlaybackSummaries(int limit, int offset)
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = @"
+            SELECT COALESCE(DeviceName, 'Unknown') AS DeviceName,
+                   COALESCE(ClientName, 'Unknown') AS ClientName,
+                   COUNT(DISTINCT UserId) AS DistinctUsers,
+                   COUNT(*) AS SessionCount,
+                   COALESCE(SUM(PlaybackDurationTicks), 0) AS TotalTicks,
+                   MAX(StartTime) AS LastSeen
+            FROM PlaybackEvents
+            GROUP BY COALESCE(DeviceName, 'Unknown'), COALESCE(ClientName, 'Unknown')
+            ORDER BY SessionCount DESC, DeviceName ASC
+            LIMIT $limit OFFSET $offset";
+        cmd.Parameters.AddWithValue("$limit", limit);
+        cmd.Parameters.AddWithValue("$offset", offset);
+
+        var result = new List<DevicePlaybackSummary>();
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            result.Add(new DevicePlaybackSummary
+            {
+                DeviceName = reader.GetString(0),
+                ClientName = reader.GetString(1),
+                DistinctUsers = reader.GetInt32(2),
+                SessionCount = reader.GetInt32(3),
+                TotalTicks = reader.GetInt64(4),
+                LastSeen = reader.IsDBNull(5)
+                    ? null
+                    : DateTime.Parse(reader.GetString(5), null, System.Globalization.DateTimeStyles.RoundtripKind),
+            });
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Returns the number of distinct tracked devices.
+    /// </summary>
+    /// <returns>Distinct device count.</returns>
+    public int GetDistinctDeviceCount()
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(*) FROM (SELECT DISTINCT COALESCE(DeviceName, 'Unknown'), COALESCE(ClientName, 'Unknown') FROM PlaybackEvents)";
+        return Convert.ToInt32(cmd.ExecuteScalar(), CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
     /// Deletes events older than the configured retention period.
     /// </summary>
     /// <param name="retentionDays">Days to retain. 0 means keep forever.</param>
@@ -390,4 +481,45 @@ public class TopItem
 
     /// <summary>Gets or sets total ticks watched for this item.</summary>
     public long TotalTicks { get; set; }
+}
+
+/// <summary>User playback totals.</summary>
+public class UserPlaybackSummary
+{
+    /// <summary>Gets or sets the Jellyfin user ID.</summary>
+    public string UserId { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the user name.</summary>
+    public string UserName { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the number of playback sessions.</summary>
+    public int SessionCount { get; set; }
+
+    /// <summary>Gets or sets the total watched ticks.</summary>
+    public long TotalTicks { get; set; }
+
+    /// <summary>Gets or sets the last seen playback timestamp.</summary>
+    public DateTime? LastSeen { get; set; }
+}
+
+/// <summary>Device playback totals.</summary>
+public class DevicePlaybackSummary
+{
+    /// <summary>Gets or sets the device name.</summary>
+    public string DeviceName { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the client name.</summary>
+    public string ClientName { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the number of distinct users seen on this device.</summary>
+    public int DistinctUsers { get; set; }
+
+    /// <summary>Gets or sets the number of playback sessions.</summary>
+    public int SessionCount { get; set; }
+
+    /// <summary>Gets or sets the total watched ticks.</summary>
+    public long TotalTicks { get; set; }
+
+    /// <summary>Gets or sets the last seen playback timestamp.</summary>
+    public DateTime? LastSeen { get; set; }
 }

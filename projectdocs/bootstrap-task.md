@@ -12,12 +12,13 @@ The stated project goal is to create a repository that can contain multiple Jell
 Validate the repository structure that now exists.
 Compare Claude Code's handoff in `Talk.md` against the actual filesystem.
 Reassess build blockers, security issues, and repository-level gaps.
+Implement the approved `Chiggi Stats` reporting redesign in controlled phases without regressing the now-green CI baseline.
 
 ## Immediate Next Actions
-Monitor GitHub Actions for commit `e606645`.
-Confirm that the Jellyfin admin-check API mismatch and `GetSeasonNumber()` compile error are gone.
-Confirm that `ChiggiStats` analyzer findings are now warnings instead of build-blocking errors.
+Run manual installation testing on a real Jellyfin server.
+If manual testing passes, create the first release.
 After the first successful release, update `manifest.json` with real `sourceUrl` and `checksum` values.
+Validate the current `Chiggi Stats` reporting rewrite in a real Jellyfin server because local `.NET` build verification is still unavailable.
 
 ## Status
 The initial empty-repo bootstrap notes are outdated.
@@ -37,6 +38,10 @@ The fix set has been committed and pushed to `origin/main` as `eed8263`.
 The latest CI run for the follow-up push exposed three real compile/API mismatches that remain unresolved: `HasPermission` and `PermissionKind` do not exist on the current Jellyfin user API, and `Episode.GetSeasonNumber()` does not exist in `ChiggiStats`.
 The same CI run also proved that `ChiggiStats` still has a large StyleCop and .NET analyzer backlog because its project file still treats warnings as errors and does not suppress the same warning families that were already neutralized for `Trakt`.
 Those follow-up fixes have now been committed and pushed to `origin/main` as `e606645`.
+The user reported that the GitHub Actions build passed after the final follow-up. The project is no longer in build-triage mode.
+The active implementation scope has shifted from build triage to a functional rewrite of `Chiggi Stats` so it behaves more like Playback Reporting and Reports while still fitting Jellyfin's plugin-page conventions.
+The current pass has already added an inventory reporting service, new admin-only report endpoints, grouped SQLite summaries for users and devices, a fragment-based stats dashboard page with report tabs, fragment-based settings page resources, and a config page name that now matches the plugin name for Jellyfin settings routing.
+This pass is not finished until the rewritten pages and new report endpoints are exercised in a real Jellyfin server session.
 
 ## Notes
 There are no PowerShell scripts in the current directory, so there is nothing to document for PowerShell at this stage.

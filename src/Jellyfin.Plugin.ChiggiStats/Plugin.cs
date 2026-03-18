@@ -52,8 +52,18 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
             },
             new PluginPageInfo
             {
-                Name = "chiggistatsconfig",
+                Name = "chiggistatsjs",
+                EmbeddedResourcePath = $"{GetType().Namespace}.Pages.stats.js"
+            },
+            new PluginPageInfo
+            {
+                Name = "Chiggi Stats",
                 EmbeddedResourcePath = $"{GetType().Namespace}.Configuration.config.html"
+            },
+            new PluginPageInfo
+            {
+                Name = "chiggistatsconfigjs",
+                EmbeddedResourcePath = $"{GetType().Namespace}.Configuration.config.js"
             }
         };
     }

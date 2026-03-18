@@ -16,6 +16,7 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
     {
         serviceCollection.AddSingleton<SqliteRepository>();
         serviceCollection.AddSingleton<ActivityLogRepository>();
+        serviceCollection.AddSingleton<InventoryReportService>();
         serviceCollection.AddHostedService<PlaybackTracker>();
     }
 }

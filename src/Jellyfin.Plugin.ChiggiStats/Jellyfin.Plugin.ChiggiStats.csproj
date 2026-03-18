@@ -17,9 +17,13 @@
 
   <ItemGroup>
     <None Remove="Configuration\config.html" />
+    <None Remove="Configuration\config.js" />
     <None Remove="Pages\stats.html" />
+    <None Remove="Pages\stats.js" />
     <EmbeddedResource Include="Configuration\config.html" />
+    <EmbeddedResource Include="Configuration\config.js" />
     <EmbeddedResource Include="Pages\stats.html" />
+    <EmbeddedResource Include="Pages\stats.js" />
   </ItemGroup>
 
   <ItemGroup>

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net.Mime;
 using System.Security.Claims;
 using Jellyfin.Data;
+using Jellyfin.Database.Implementations.Entities;
 using Jellyfin.Plugin.ChiggiStats.Data;
 using Jellyfin.Plugin.ChiggiStats.Models;
 using MediaBrowser.Controller.Library;
@@ -26,6 +27,7 @@ public class StatsController : ControllerBase
 {
     private readonly SqliteRepository _sqlite;
     private readonly ActivityLogRepository _activityLog;
+    private readonly InventoryReportService _inventoryReports;
     private readonly IUserManager _userManager;
     private readonly ILogger<StatsController> _logger;
 
@@ -34,16 +36,19 @@ public class StatsController : ControllerBase
     /// </summary>
     /// <param name="sqlite">The SQLite repository.</param>
     /// <param name="activityLog">The activity log repository.</param>
+    /// <param name="inventoryReports">The inventory report service.</param>
     /// <param name="userManager">The Jellyfin user manager.</param>
     /// <param name="logger">The logger.</param>
     public StatsController(
         SqliteRepository sqlite,
         ActivityLogRepository activityLog,
+        InventoryReportService inventoryReports,
         IUserManager userManager,
         ILogger<StatsController> logger)
     {
         _sqlite = sqlite;
         _activityLog = activityLog;
+        _inventoryReports = inventoryReports;
         _userManager = userManager;
         _logger = logger;
     }
@@ -162,6 +167,95 @@ public class StatsController : ControllerBase
         return Ok(users);
     }
 
+    /// <summary>
+    /// Returns overview metrics for the combined admin dashboard.
+    /// </summary>
+    /// <returns>Overview metrics.</returns>
+    [HttpGet("reports/overview")]
+    [Authorize(Policy = "RequiresElevation")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public ActionResult<OverviewResponse> GetOverview()
+    {
+        var adminUser = GetAuthenticatedUser();
+        if (adminUser == null)
+        {
+            return Unauthorized();
+        }
+
+        if (!adminUser.HasPermission(Jellyfin.Database.Implementations.Enums.PermissionKind.IsAdministrator))
+        {
+            return Forbid();
+        }
+
+        return Ok(new OverviewResponse
+        {
+            Metrics = _inventoryReports.GetOverviewMetrics(adminUser)
+                .Select(metric => new MetricDto
+                {
+                    Key = metric.Key,
+                    Label = metric.Label,
+                    Value = metric.Value,
+                })
+                .ToList(),
+        });
+    }
+
+    /// <summary>
+    /// Returns a paginated admin-only report table for the requested type.
+    /// </summary>
+    /// <param name="type">The report type.</param>
+    /// <param name="limit">Maximum rows to return.</param>
+    /// <param name="offset">Rows to skip.</param>
+    /// <returns>A report table payload.</returns>
+    [HttpGet("reports/table")]
+    [Authorize(Policy = "RequiresElevation")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public ActionResult<ReportTableResponse> GetReportTable(
+        [FromQuery][Required] string type,
+        [FromQuery][Range(1, 500)] int limit = 100,
+        [FromQuery][Range(0, int.MaxValue)] int offset = 0)
+    {
+        var adminUser = GetAuthenticatedUser();
+        if (adminUser == null)
+        {
+            return Unauthorized();
+        }
+
+        if (!adminUser.HasPermission(Jellyfin.Database.Implementations.Enums.PermissionKind.IsAdministrator))
+        {
+            return Forbid();
+        }
+
+        try
+        {
+            var report = _inventoryReports.GetReport(adminUser, type, limit, offset);
+            return Ok(new ReportTableResponse
+            {
+                ReportType = report.ReportType,
+                Title = report.Title,
+                TotalCount = report.TotalCount,
+                Columns = report.Columns.Select(column => new ReportColumnDto
+                {
+                    Key = column.Key,
+                    Label = column.Label,
+                }).ToList(),
+                Rows = report.Rows.Select(row => new ReportRowDto
+                {
+                    Cells = row.Cells,
+                }).ToList(),
+            });
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return BadRequest(new { Message = "Unsupported report type." });
+        }
+    }
+
     // Resolves the effective user ID. Non-admins are locked to their own ID.
     private string? ResolveUserId(string? requestedUserId)
     {
@@ -191,6 +285,17 @@ public class StatsController : ControllerBase
     {
         return User.FindFirst("uid")?.Value
             ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    }
+
+    private User? GetAuthenticatedUser()
+    {
+        var claimUserId = GetAuthenticatedUserId();
+        if (string.IsNullOrWhiteSpace(claimUserId) || !Guid.TryParse(claimUserId, out var callerGuid))
+        {
+            return null;
+        }
+
+        return _userManager.GetUserById(callerGuid);
     }
 
     private static PlaybackEventDto MapToDto(PlaybackEvent evt)
@@ -223,6 +328,26 @@ public class ActivityResponse
 
     /// <summary>Gets or sets the current page of events.</summary>
     public List<PlaybackEventDto> Items { get; set; } = new();
+}
+
+/// <summary>Overview payload for the report dashboard.</summary>
+public class OverviewResponse
+{
+    /// <summary>Gets or sets the top-level metrics.</summary>
+    public List<MetricDto> Metrics { get; set; } = new();
+}
+
+/// <summary>A top-level report metric.</summary>
+public class MetricDto
+{
+    /// <summary>Gets or sets the metric key.</summary>
+    public string Key { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the metric label.</summary>
+    public string Label { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the metric value.</summary>
+    public string Value { get; set; } = string.Empty;
 }
 
 /// <summary>A single playback event as returned by the API.</summary>
@@ -339,4 +464,40 @@ public class UserDto
 
     /// <summary>Gets or sets the username.</summary>
     public string UserName { get; set; } = string.Empty;
+}
+
+/// <summary>A generic report table response.</summary>
+public class ReportTableResponse
+{
+    /// <summary>Gets or sets the report type.</summary>
+    public string ReportType { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the report title.</summary>
+    public string Title { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the total row count.</summary>
+    public int TotalCount { get; set; }
+
+    /// <summary>Gets or sets the report columns.</summary>
+    public List<ReportColumnDto> Columns { get; set; } = new();
+
+    /// <summary>Gets or sets the report rows.</summary>
+    public List<ReportRowDto> Rows { get; set; } = new();
+}
+
+/// <summary>A report column descriptor.</summary>
+public class ReportColumnDto
+{
+    /// <summary>Gets or sets the column key.</summary>
+    public string Key { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the column label.</summary>
+    public string Label { get; set; } = string.Empty;
+}
+
+/// <summary>A report row payload.</summary>
+public class ReportRowDto
+{
+    /// <summary>Gets or sets the row cell values.</summary>
+    public Dictionary<string, string?> Cells { get; set; } = new();
 }
