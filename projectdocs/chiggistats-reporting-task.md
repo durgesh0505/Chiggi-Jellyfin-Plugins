@@ -3,7 +3,7 @@
 ## Status
 
 Created on 2026-03-18. This file is the active implementation checklist for the `Chiggi Stats` reporting redesign and must be updated as work progresses.
-Implementation is in progress. The first backend and UI foundation pass is complete, and a first CI follow-up fix for `InventoryReportService.cs` is now applied locally, but local .NET build validation is still blocked in this environment.
+Implementation is in progress. The first backend and UI foundation pass is complete, and the first CI follow-up fix for `InventoryReportService.cs` is committed and pushed as `1b19998`, but local .NET build validation is still blocked in this environment.
 
 ## Objective
 
@@ -57,7 +57,7 @@ Turn `Chiggi Stats` from a single playback dashboard into an admin-only reportin
 
 ## Remaining Work
 
-- [ ] Commit and push the `InventoryReportService.cs` CI follow-up fix
+- [ ] Confirm that GitHub Actions passes for commit `1b19998`
 - [ ] Run a real `.NET` build and fix any Jellyfin API mismatches that static inspection did not catch
 - [ ] Validate the settings-page route and report-tab loading in a real Jellyfin server session
 - [ ] Decide whether to delete the unused `ActivityLogRepository` fallback path from the API layer or leave it as dormant compatibility code
