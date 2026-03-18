@@ -10,7 +10,6 @@ using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
-using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Querying;
 
 namespace Jellyfin.Plugin.ChiggiStats.Data;
@@ -135,21 +134,19 @@ public sealed class InventoryReportService
 
     private ReportTableData BuildMediaTable(User caller, string reportType, string title, int limit, int offset, params BaseItemKind[] itemKinds)
     {
-        var query = new InternalItemsQuery(caller)
+        var allItems = _libraryManager.GetItemList(new InternalItemsQuery(caller)
         {
             IncludeItemTypes = itemKinds,
             IsVirtualItem = false,
-            Limit = limit,
-            StartIndex = offset,
-            OrderBy = new[] { (ItemSortBy.SortName, SortOrder.Ascending) },
-        };
+        }).ToList();
 
-        var items = _libraryManager.GetItemList(query);
-        var totalCount = _libraryManager.GetCount(new InternalItemsQuery(caller)
-        {
-            IncludeItemTypes = itemKinds,
-            IsVirtualItem = false,
-        });
+        var totalCount = allItems.Count;
+        var items = allItems
+            .OrderBy(item => item.SortName ?? item.Name ?? string.Empty, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(item => item.Name ?? string.Empty, StringComparer.OrdinalIgnoreCase)
+            .Skip(offset)
+            .Take(limit)
+            .ToList();
 
         return new ReportTableData
         {
