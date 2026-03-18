@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Chiggi Stats — Preview</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #101010;
+            color: #e0e0e0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 14px;
+            min-height: 100vh;
+        }
+
+        /* Simulated Jellyfin sidebar */
+        .layout { display: flex; min-height: 100vh; }
+        .sidebar {
+            width: 240px;
+            background: #1a1a1a;
+            padding: 20px 0;
+            flex-shrink: 0;
+            border-right: 1px solid rgba(255,255,255,.07);
+        }
+        .sidebar-logo {
+            padding: 0 20px 20px;
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #00a4dc;
+            border-bottom: 1px solid rgba(255,255,255,.07);
+            margin-bottom: 16px;
+        }
+        .sidebar-item {
+            padding: 10px 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #aaa;
+            border-left: 3px solid transparent;
+            font-size: .9em;
+        }
+        .sidebar-item.active {
+            color: #fff;
+            background: rgba(0,164,220,.12);
+            border-left-color: #00a4dc;
+        }
+        .sidebar-item .icon { font-size: 1.2em; }
+
+        /* Main content */
+        .main { flex: 1; padding: 28px 36px; overflow-y: auto; }
+        .page-title {
+            font-size: 1.6em;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .page-subtitle { opacity: .5; font-size: .85em; margin-bottom: 24px; }
+
+        /* Filters */
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: flex-end;
+            background: rgba(255,255,255,.03);
+            border: 1px solid rgba(255,255,255,.08);
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+        }
+        .filter-group { display: flex; flex-direction: column; gap: 4px; }
+        .filter-group label { font-size: .75em; opacity: .6; text-transform: uppercase; letter-spacing: .05em; }
+        .filter-group select,
+        .filter-group input[type=date] {
+            background: rgba(255,255,255,.07);
+            border: 1px solid rgba(255,255,255,.13);
+            border-radius: 6px;
+            color: #e0e0e0;
+            padding: 7px 12px;
+            font-size: .9em;
+            outline: none;
+            cursor: pointer;
+        }
+        .filter-group select:focus,
+        .filter-group input[type=date]:focus {
+            border-color: #00a4dc;
+        }
+        .btn {
+            padding: 8px 20px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: .9em;
+            font-weight: 600;
+            transition: opacity .15s;
+        }
+        .btn:hover { opacity: .85; }
+        .btn-primary { background: #00a4dc; color: #fff; }
+        .btn-ghost { background: rgba(255,255,255,.08); color: #ccc; }
+
+        /* Summary cards */
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 14px;
+            margin-bottom: 28px;
+        }
+        .card {
+            background: rgba(255,255,255,.04);
+            border: 1px solid rgba(255,255,255,.07);
+            border-radius: 10px;
+            padding: 18px 20px;
+            text-align: center;
+            transition: border-color .2s;
+        }
+        .card:hover { border-color: rgba(0,164,220,.4); }
+        .card-value { font-size: 2.2em; font-weight: 700; color: #00a4dc; line-height: 1; }
+        .card-label { font-size: .78em; opacity: .6; margin-top: 6px; text-transform: uppercase; letter-spacing: .06em; }
+        .card-sub { font-size: .8em; opacity: .4; margin-top: 2px; }
+
+        /* Sections */
+        .section { margin-bottom: 32px; }
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+        .section-title {
+            font-size: .8em;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            opacity: .6;
+        }
+
+        /* Chart */
+        .chart-wrap {
+            background: rgba(255,255,255,.03);
+            border: 1px solid rgba(255,255,255,.07);
+            border-radius: 10px;
+            padding: 20px;
+            height: 220px;
+        }
+
+        /* Tables */
+        .table-wrap {
+            background: rgba(255,255,255,.03);
+            border: 1px solid rgba(255,255,255,.07);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        table { width: 100%; border-collapse: collapse; }
+        thead tr { background: rgba(255,255,255,.04); }
+        th {
+            text-align: left;
+            padding: 11px 16px;
+            font-size: .75em;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            opacity: .5;
+            border-bottom: 1px solid rgba(255,255,255,.07);
+        }
+        td { padding: 11px 16px; border-bottom: 1px solid rgba(255,255,255,.04); }
+        tr:last-child td { border-bottom: none; }
+        tbody tr:hover td { background: rgba(255,255,255,.03); }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: .72em;
+            font-weight: 700;
+        }
+        .badge-movie   { background: rgba(0,164,220,.2);  color: #00a4dc; }
+        .badge-episode { background: rgba(82,196,26,.2);  color: #52c41a; }
+        .badge-audio   { background: rgba(250,173,20,.2); color: #faad14; }
+
+        /* Rank */
+        .rank { font-weight: 700; opacity: .4; font-size: 1.1em; }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 16px;
+            border-top: 1px solid rgba(255,255,255,.07);
+            font-size: .85em;
+            opacity: .7;
+        }
+        .pagination button {
+            background: rgba(255,255,255,.07);
+            border: none;
+            color: #ccc;
+            padding: 5px 14px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: .9em;
+        }
+        .pagination button:disabled { opacity: .3; cursor: default; }
+
+        /* Duration bar */
+        .dur-bar-wrap { display: flex; align-items: center; gap: 8px; }
+        .dur-bar { height: 4px; background: rgba(0,164,220,.35); border-radius: 2px; }
+
+        /* Completed dot */
+        .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; }
+        .dot-yes { background: #52c41a; }
+        .dot-no  { background: rgba(255,255,255,.2); }
+
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } .sidebar { display: none; } }
+
+        /* Note banner */
+        .preview-banner {
+            background: rgba(0,164,220,.12);
+            border: 1px solid rgba(0,164,220,.3);
+            border-radius: 8px;
+            padding: 10px 16px;
+            margin-bottom: 20px;
+            font-size: .85em;
+            color: #00a4dc;
+        }
+    </style>
+</head>
+<body>
+<div class="layout">
+
+    <!-- Simulated Jellyfin sidebar -->
+    <nav class="sidebar">
+        <div class="sidebar-logo">🎬 Jellyfin</div>
+        <div class="sidebar-item"><span class="icon">🏠</span> Home</div>
+        <div class="sidebar-item"><span class="icon">🎬</span> Movies</div>
+        <div class="sidebar-item"><span class="icon">📺</span> TV Shows</div>
+        <div class="sidebar-item"><span class="icon">🎵</span> Music</div>
+        <div style="border-top:1px solid rgba(255,255,255,.07); margin:12px 0;"></div>
+        <div class="sidebar-item active"><span class="icon">📊</span> Chiggi Stats</div>
+        <div class="sidebar-item"><span class="icon">⚙️</span> Dashboard</div>
+    </nav>
+
+    <!-- Main content -->
+    <main class="main">
+
+        <div class="preview-banner">
+            📌 This is a static preview with mock data. Inside Jellyfin, all data is live from your server.
+        </div>
+
+        <div class="page-title">Chiggi Stats</div>
+        <div class="page-subtitle">Playback statistics for your Jellyfin server</div>
+
+        <!-- Filters bar -->
+        <div class="filters">
+            <div class="filter-group">
+                <label>User</label>
+                <select>
+                    <option>All Users</option>
+                    <option selected>Alice</option>
+                    <option>Bob</option>
+                    <option>Charlie</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Media Type</label>
+                <select>
+                    <option selected>All</option>
+                    <option>Movies</option>
+                    <option>Episodes</option>
+                    <option>Music</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>From</label>
+                <input type="date" value="2026-02-16">
+            </div>
+            <div class="filter-group">
+                <label>To</label>
+                <input type="date" value="2026-03-18">
+            </div>
+            <div style="display:flex;gap:8px;align-self:flex-end;">
+                <button class="btn btn-primary">Apply</button>
+                <button class="btn btn-ghost">Reset</button>
+            </div>
+        </div>
+
+        <!-- Summary cards -->
+        <div class="cards">
+            <div class="card">
+                <div class="card-value">47.3</div>
+                <div class="card-label">Hours Watched</div>
+                <div class="card-sub">last 30 days</div>
+            </div>
+            <div class="card">
+                <div class="card-value">183</div>
+                <div class="card-label">Sessions</div>
+                <div class="card-sub">total plays</div>
+            </div>
+            <div class="card">
+                <div class="card-value">24</div>
+                <div class="card-label">Movies</div>
+                <div class="card-sub">watched</div>
+            </div>
+            <div class="card">
+                <div class="card-value">159</div>
+                <div class="card-label">Episodes</div>
+                <div class="card-sub">watched</div>
+            </div>
+        </div>
+
+        <!-- Chart + Top Items side by side -->
+        <div class="two-col">
+            <div class="section">
+                <div class="section-header">
+                    <span class="section-title">Watch Time by Day</span>
+                </div>
+                <div class="chart-wrap">
+                    <canvas id="watchChart"></canvas>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header">
+                    <span class="section-title">Most Watched</span>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Title</th>
+                                <th>Type</th>
+                                <th>Plays</th>
+                                <th>Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="rank">1</td>
+                                <td>Breaking Bad</td>
+                                <td><span class="badge badge-episode">Episode</span></td>
+                                <td>62</td>
+                                <td>46h 30m</td>
+                            </tr>
+                            <tr>
+                                <td class="rank">2</td>
+                                <td>The Dark Knight</td>
+                                <td><span class="badge badge-movie">Movie</span></td>
+                                <td>3</td>
+                                <td>7h 3m</td>
+                            </tr>
+                            <tr>
+                                <td class="rank">3</td>
+                                <td>Succession</td>
+                                <td><span class="badge badge-episode">Episode</span></td>
+                                <td>38</td>
+                                <td>31h 20m</td>
+                            </tr>
+                            <tr>
+                                <td class="rank">4</td>
+                                <td>Interstellar</td>
+                                <td><span class="badge badge-movie">Movie</span></td>
+                                <td>2</td>
+                                <td>5h 36m</td>
+                            </tr>
+                            <tr>
+                                <td class="rank">5</td>
+                                <td>Dune</td>
+                                <td><span class="badge badge-movie">Movie</span></td>
+                                <td>2</td>
+                                <td>5h 10m</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="section">
+            <div class="section-header">
+                <span class="section-title">Recent Activity</span>
+                <span style="font-size:.8em;opacity:.4;">183 total  ·  Page 1 of 4</span>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Title</th>
+                            <th>Type</th>
+                            <th>Duration</th>
+                            <th>✓</th>
+                            <th>Date &amp; Time</th>
+                            <th>Client</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Alice</td>
+                            <td>Breaking Bad S5E16 – Felina</td>
+                            <td><span class="badge badge-episode">Episode</span></td>
+                            <td>
+                                <div class="dur-bar-wrap">55m
+                                    <div class="dur-bar" style="width:55px"></div>
+                                </div>
+                            </td>
+                            <td><span class="dot dot-yes" title="Watched to completion"></span></td>
+                            <td>2026-03-18 21:30</td>
+                            <td>Jellyfin Web</td>
+                        </tr>
+                        <tr>
+                            <td>Alice</td>
+                            <td>Breaking Bad S5E15 – Granite State</td>
+                            <td><span class="badge badge-episode">Episode</span></td>
+                            <td>
+                                <div class="dur-bar-wrap">55m
+                                    <div class="dur-bar" style="width:55px"></div>
+                                </div>
+                            </td>
+                            <td><span class="dot dot-yes"></span></td>
+                            <td>2026-03-18 20:30</td>
+                            <td>Jellyfin Web</td>
+                        </tr>
+                        <tr>
+                            <td>Bob</td>
+                            <td>Interstellar</td>
+                            <td><span class="badge badge-movie">Movie</span></td>
+                            <td>
+                                <div class="dur-bar-wrap">2h 49m
+                                    <div class="dur-bar" style="width:100px"></div>
+                                </div>
+                            </td>
+                            <td><span class="dot dot-yes"></span></td>
+                            <td>2026-03-18 18:00</td>
+                            <td>Infuse</td>
+                        </tr>
+                        <tr>
+                            <td>Alice</td>
+                            <td>Succession S4E10 – With Open Eyes</td>
+                            <td><span class="badge badge-episode">Episode</span></td>
+                            <td>
+                                <div class="dur-bar-wrap">1h 28m
+                                    <div class="dur-bar" style="width:72px"></div>
+                                </div>
+                            </td>
+                            <td><span class="dot dot-yes"></span></td>
+                            <td>2026-03-17 22:15</td>
+                            <td>Android TV</td>
+                        </tr>
+                        <tr>
+                            <td>Charlie</td>
+                            <td>The Dark Knight</td>
+                            <td><span class="badge badge-movie">Movie</span></td>
+                            <td>
+                                <div class="dur-bar-wrap">1h 12m
+                                    <div class="dur-bar" style="width:60px"></div>
+                                </div>
+                            </td>
+                            <td><span class="dot dot-no" title="Stopped early"></span></td>
+                            <td>2026-03-17 20:00</td>
+                            <td>Jellyfin Web</td>
+                        </tr>
+                        <tr>
+                            <td>Bob</td>
+                            <td>Dune: Part Two</td>
+                            <td><span class="badge badge-movie">Movie</span></td>
+                            <td>
+                                <div class="dur-bar-wrap">2h 47m
+                                    <div class="dur-bar" style="width:98px"></div>
+                                </div>
+                            </td>
+                            <td><span class="dot dot-yes"></span></td>
+                            <td>2026-03-16 19:30</td>
+                            <td>Roku</td>
+                        </tr>
+                        <tr>
+                            <td>Alice</td>
+                            <td>Succession S4E9 – Church and State</td>
+                            <td><span class="badge badge-episode">Episode</span></td>
+                            <td>
+                                <div class="dur-bar-wrap">1h 13m
+                                    <div class="dur-bar" style="width:58px"></div>
+                                </div>
+                            </td>
+                            <td><span class="dot dot-yes"></span></td>
+                            <td>2026-03-16 21:00</td>
+                            <td>Android TV</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="pagination">
+                    <button disabled>‹ Prev</button>
+                    <span>Page 1 of 4 &nbsp;·&nbsp; 183 records</span>
+                    <button>Next ›</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<script>
+(function () {
+    var labels = [];
+    var data = [];
+    var base = new Date('2026-02-16');
+    for (var i = 0; i < 30; i++) {
+        var d = new Date(base);
+        d.setDate(d.getDate() + i);
+        labels.push(d.toISOString().slice(5, 10)); // MM-DD
+        // Generate realistic-looking data with weekday peaks
+        var day = d.getDay();
+        var isWeekend = day === 0 || day === 6;
+        var base_mins = isWeekend ? 180 : 60;
+        data.push(Math.round(base_mins + Math.random() * 120 - 30));
+    }
+
+    new Chart(document.getElementById('watchChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Minutes',
+                data: data,
+                backgroundColor: function(ctx) {
+                    var v = ctx.parsed.y;
+                    if (v > 240) return 'rgba(0,164,220,0.8)';
+                    if (v > 150) return 'rgba(0,164,220,0.55)';
+                    return 'rgba(0,164,220,0.35)';
+                },
+                borderRadius: 3,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            var m = ctx.parsed.y;
+                            return m >= 60
+                                ? Math.floor(m/60) + 'h ' + (m%60) + 'm'
+                                : m + 'm';
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: {
+                        color: '#777',
+                        maxTicksLimit: 10,
+                        font: { size: 11 }
+                    },
+                    grid: { color: 'rgba(255,255,255,.04)' }
+                },
+                y: {
+                    ticks: {
+                        color: '#777',
+                        font: { size: 11 },
+                        callback: function(v) { return v >= 60 ? Math.floor(v/60)+'h' : v+'m'; }
+                    },
+                    grid: { color: 'rgba(255,255,255,.04)' }
+                }
+            }
+        }
+    });
+}());
+</script>
+</body>
+</html>
