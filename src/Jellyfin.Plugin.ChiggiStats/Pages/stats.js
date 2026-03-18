@@ -30,16 +30,10 @@ const ChiggiStatsPage = {
     },
 
     fetchJson: function (path, params) {
-        return fetch(ChiggiStatsPage.buildUrl(path, params), {
-            headers: {
-                Authorization: 'MediaBrowser Token="' + ApiClient.accessToken() + '"'
-            }
-        }).then(response => {
-            if (!response.ok) {
-                throw new Error('HTTP ' + response.status);
-            }
-
-            return response.json();
+        return ApiClient.ajax({
+            type: 'GET',
+            url: ChiggiStatsPage.buildUrl(path, params),
+            dataType: 'json'
         });
     },
 
