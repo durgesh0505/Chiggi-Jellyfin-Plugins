@@ -35,29 +35,32 @@ public sealed class SqliteRepository : IDisposable
 
     private void InitializeDatabase()
     {
+        Execute("PRAGMA journal_mode=WAL;");
+        Execute(@"CREATE TABLE IF NOT EXISTS PlaybackEvents (
+            Id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+            UserId                TEXT    NOT NULL,
+            UserName              TEXT    NOT NULL,
+            ItemId                TEXT    NOT NULL,
+            ItemName              TEXT    NOT NULL,
+            MediaType             TEXT    NOT NULL,
+            SeriesName            TEXT,
+            SeasonNumber          INTEGER,
+            EpisodeNumber         INTEGER,
+            StartTime             TEXT    NOT NULL,
+            PlaybackDurationTicks INTEGER NOT NULL DEFAULT 0,
+            Completed             INTEGER NOT NULL DEFAULT 0,
+            ClientName            TEXT,
+            DeviceName            TEXT
+        );");
+        Execute("CREATE INDEX IF NOT EXISTS IX_PE_UserId    ON PlaybackEvents (UserId);");
+        Execute("CREATE INDEX IF NOT EXISTS IX_PE_StartTime ON PlaybackEvents (StartTime);");
+        Execute("CREATE INDEX IF NOT EXISTS IX_PE_MediaType ON PlaybackEvents (MediaType);");
+    }
+
+    private void Execute(string sql)
+    {
         using var cmd = _connection.CreateCommand();
-        cmd.CommandText = @"
-            PRAGMA journal_mode=WAL;
-            CREATE TABLE IF NOT EXISTS PlaybackEvents (
-                Id                    INTEGER PRIMARY KEY AUTOINCREMENT,
-                UserId                TEXT    NOT NULL,
-                UserName              TEXT    NOT NULL,
-                ItemId                TEXT    NOT NULL,
-                ItemName              TEXT    NOT NULL,
-                MediaType             TEXT    NOT NULL,
-                SeriesName            TEXT,
-                SeasonNumber          INTEGER,
-                EpisodeNumber         INTEGER,
-                StartTime             TEXT    NOT NULL,
-                PlaybackDurationTicks INTEGER NOT NULL DEFAULT 0,
-                Completed             INTEGER NOT NULL DEFAULT 0,
-                ClientName            TEXT,
-                DeviceName            TEXT
-            );
-            CREATE INDEX IF NOT EXISTS IX_PE_UserId    ON PlaybackEvents (UserId);
-            CREATE INDEX IF NOT EXISTS IX_PE_StartTime ON PlaybackEvents (StartTime);
-            CREATE INDEX IF NOT EXISTS IX_PE_MediaType ON PlaybackEvents (MediaType);
-        ";
+        cmd.CommandText = sql;
         cmd.ExecuteNonQuery();
     }
 
