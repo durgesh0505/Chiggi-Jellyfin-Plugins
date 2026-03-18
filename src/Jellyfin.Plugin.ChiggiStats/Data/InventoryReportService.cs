@@ -10,6 +10,7 @@ using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Querying;
 
 namespace Jellyfin.Plugin.ChiggiStats.Data;
@@ -118,16 +119,16 @@ public sealed class InventoryReportService
     /// <returns>A report table payload.</returns>
     public ReportTableData GetReport(User caller, string reportType, int limit, int offset)
     {
-        return reportType.ToLowerInvariant() switch
+        return reportType.ToUpperInvariant() switch
         {
-            "movies" => BuildMediaTable(caller, "movies", "Movies", limit, offset, BaseItemKind.Movie),
-            "series" => BuildMediaTable(caller, "series", "Series", limit, offset, BaseItemKind.Series),
-            "seasons" => BuildMediaTable(caller, "seasons", "Seasons", limit, offset, BaseItemKind.Season),
-            "episodes" => BuildMediaTable(caller, "episodes", "Episodes", limit, offset, BaseItemKind.Episode),
-            "music" => BuildMediaTable(caller, "music", "Music", limit, offset, BaseItemKind.Audio, BaseItemKind.MusicAlbum),
-            "boxsets" => BuildMediaTable(caller, "boxsets", "Box Sets", limit, offset, BaseItemKind.BoxSet),
-            "users" => BuildUsersTable("users", "Users"),
-            "devices" => BuildDevicesTable("devices", "Devices", limit, offset),
+            "MOVIES" => BuildMediaTable(caller, "movies", "Movies", limit, offset, BaseItemKind.Movie),
+            "SERIES" => BuildMediaTable(caller, "series", "Series", limit, offset, BaseItemKind.Series),
+            "SEASONS" => BuildMediaTable(caller, "seasons", "Seasons", limit, offset, BaseItemKind.Season),
+            "EPISODES" => BuildMediaTable(caller, "episodes", "Episodes", limit, offset, BaseItemKind.Episode),
+            "MUSIC" => BuildMediaTable(caller, "music", "Music", limit, offset, BaseItemKind.Audio, BaseItemKind.MusicAlbum),
+            "BOXSETS" => BuildMediaTable(caller, "boxsets", "Box Sets", limit, offset, BaseItemKind.BoxSet),
+            "USERS" => BuildUsersTable("users", "Users"),
+            "DEVICES" => BuildDevicesTable("devices", "Devices", limit, offset),
             _ => throw new ArgumentOutOfRangeException(nameof(reportType), reportType, "Unsupported report type."),
         };
     }
@@ -355,8 +356,12 @@ public sealed class InventoryReportService
     {
         return item switch
         {
-            Audio audio => audio.AlbumArtists.FirstOrDefault() ?? audio.Artists.FirstOrDefault(),
-            MusicAlbum album => album.AlbumArtists.FirstOrDefault() ?? album.Artists.FirstOrDefault(),
+            Audio audio => audio.AlbumArtists.Count > 0
+                ? audio.AlbumArtists[0]
+                : audio.Artists.Count > 0 ? audio.Artists[0] : null,
+            MusicAlbum album => album.AlbumArtists.Count > 0
+                ? album.AlbumArtists[0]
+                : album.Artists.Count > 0 ? album.Artists[0] : null,
             _ => null,
         };
     }
