@@ -57,7 +57,6 @@ Turn `Chiggi Stats` from a single playback dashboard into an admin-only reportin
 
 ## Remaining Work
 
-- [ ] Replace the `v1.0.2` `Chiggi Stats` placeholder checksum in `manifest.json` with the real MD5 and push it
 - [ ] Confirm that GitHub Actions passes for commit `5f70b9b`
 - [ ] Run a real `.NET` build and fix any Jellyfin API mismatches that static inspection did not catch
 - [ ] Validate the settings-page route and report-tab loading in a real Jellyfin server session
