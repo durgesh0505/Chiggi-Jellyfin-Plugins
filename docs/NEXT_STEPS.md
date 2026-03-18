@@ -25,7 +25,7 @@ Before creating a release, test the plugins on your Jellyfin server directly.
 ### How to install manually
 
 1. Download `plugin-zips` artifact from the passing GitHub Actions build
-2. Extract each `.zip` — you get a single `.dll` file per plugin
+2. Extract each `.zip` and keep the full published contents together for each plugin
 3. On your Jellyfin server, navigate to the plugin data folder:
    - **Linux/Docker:** `/config/data/plugins/` or `~/.local/share/jellyfin/data/plugins/`
    - **Windows:** `%APPDATA%\Jellyfin\data\plugins\`
@@ -33,10 +33,9 @@ Before creating a release, test the plugins on your Jellyfin server directly.
    ```
    plugins/
    ├── ChiggiStats_1.0.0.0/
-   │   └── Jellyfin.Plugin.ChiggiStats.dll
-   │   └── Microsoft.Data.Sqlite.dll   ← also included in publish output
+   │   └── ...all files from the Jellyfin.Plugin.ChiggiStats release zip...
    └── Trakt_27.1.0.0/
-       └── Trakt.dll
+       └── ...all files from the Jellyfin.Plugin.Trakt release zip...
    ```
 5. Restart Jellyfin
 6. Go to **Dashboard → Plugins** — both plugins should appear as "Active"
@@ -90,8 +89,8 @@ The `publish.yaml` GitHub Actions workflow will automatically:
 After the release workflow completes:
 
 1. Open the release workflow run in GitHub Actions
-2. Find the printed MD5 checksums (output of `md5sum` commands)
-3. Edit `manifest.json` in the repo — replace `PLACEHOLDER_MD5` with actual values:
+2. Find the printed MD5 checksums for both plugin archives
+3. Edit `manifest.json` in the repo and replace the placeholder `checksum` and `sourceUrl` values for each plugin version entry:
 
 ```json
 "checksum": "a1b2c3d4e5f6...",   ← MD5 of the .zip file

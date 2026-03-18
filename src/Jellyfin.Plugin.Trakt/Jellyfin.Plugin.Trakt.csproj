@@ -9,7 +9,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <Nullable>disable</Nullable>
-    <NoWarn>$(NoWarn);SA1101;SA1413;SA1633</NoWarn>
+    <NoWarn>$(NoWarn);SA1009;SA1101;SA1108;SA1202;SA1204;SA1309;SA1402;SA1413;SA1512;SA1515;SA1600;SA1618;SA1633;SA1649</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

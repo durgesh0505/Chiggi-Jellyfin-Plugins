@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Net.Mime;
+using System.Security.Claims;
 using Jellyfin.Plugin.ChiggiStats.Data;
 using Jellyfin.Plugin.ChiggiStats.Models;
 using MediaBrowser.Controller.Library;
@@ -164,12 +165,11 @@ public class StatsController : ControllerBase
     private string? ResolveUserId(string? requestedUserId)
     {
         // Get current authenticated user from claims
-        var claimUserId = User.FindFirst("uid")?.Value
-            ?? User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
+        var claimUserId = GetAuthenticatedUserId();
 
         if (string.IsNullOrEmpty(claimUserId))
         {
-            return requestedUserId; // fallback: trust the provided ID
+            return null;
         }
 
         // Check if the authenticated user is an admin
@@ -178,12 +178,18 @@ public class StatsController : ControllerBase
             var caller = _userManager.GetUserById(callerGuid);
             if (caller?.HasPermission(MediaBrowser.Model.Users.PermissionKind.IsAdministrator) == true)
             {
-                return requestedUserId; // admins can query any user
+                return string.IsNullOrEmpty(requestedUserId) ? claimUserId : requestedUserId;
             }
         }
 
         // Non-admins can only see their own data
-        return string.IsNullOrEmpty(requestedUserId) ? claimUserId : claimUserId;
+        return claimUserId;
+    }
+
+    private string? GetAuthenticatedUserId()
+    {
+        return User.FindFirst("uid")?.Value
+            ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
     }
 
     private static PlaybackEventDto MapToDto(PlaybackEvent evt)

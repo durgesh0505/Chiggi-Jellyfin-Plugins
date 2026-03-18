@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Mime;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using MediaBrowser.Common.Api;
 using MediaBrowser.Controller;
@@ -27,6 +28,7 @@ public class TraktController : ControllerBase
 {
     private readonly TraktApi _traktApi;
     private readonly ILibraryManager _libraryManager;
+    private readonly IUserManager _userManager;
     private readonly ILogger<TraktController> _logger;
 
     /// <summary>
@@ -49,6 +51,7 @@ public class TraktController : ControllerBase
         _logger = loggerFactory.CreateLogger<TraktController>();
         _traktApi = new TraktApi(loggerFactory.CreateLogger<TraktApi>(), httpClientFactory, appHost, userDataManager, userManager);
         _libraryManager = libraryManager;
+        _userManager = userManager;
     }
 
     /// <summary>
@@ -124,7 +127,7 @@ public class TraktController : ControllerBase
     {
         _logger.LogInformation("TraktPollAuthorizationStatus request received");
         var traktUser = UserHelper.GetTraktUser(userGuid);
-        bool isAuthorized = traktUser.AccessToken != null && traktUser.RefreshToken != null;
+        bool isAuthorized = traktUser?.AccessToken != null && traktUser.RefreshToken != null;
 
         if (Plugin.Instance.PollingTasks.TryGetValue(userGuid, out var task))
         {
@@ -152,15 +155,26 @@ public class TraktController : ControllerBase
     {
         _logger.LogInformation("RateItem request received");
 
+        if (!CanAccessUser(userGuid))
+        {
+            return Forbid();
+        }
+
         var currentItem = _libraryManager.GetItemById(itemId);
 
         if (currentItem == null)
         {
             _logger.LogInformation("currentItem is null");
-            return null;
+            return NotFound();
         }
 
-        return await _traktApi.SendItemRating(currentItem, rating, UserHelper.GetTraktUser(userGuid, true)).ConfigureAwait(false);
+        var traktUser = UserHelper.GetTraktUser(userGuid, true);
+        if (traktUser == null)
+        {
+            return NotFound();
+        }
+
+        return await _traktApi.SendItemRating(currentItem, rating, traktUser).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -173,7 +187,18 @@ public class TraktController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<List<TraktMovie>>> RecommendedTraktMovies([FromRoute] Guid userGuid)
     {
-        return await _traktApi.SendMovieRecommendationsRequest(UserHelper.GetTraktUser(userGuid, true)).ConfigureAwait(false);
+        if (!CanAccessUser(userGuid))
+        {
+            return Forbid();
+        }
+
+        var traktUser = UserHelper.GetTraktUser(userGuid, true);
+        if (traktUser == null)
+        {
+            return NotFound();
+        }
+
+        return await _traktApi.SendMovieRecommendationsRequest(traktUser).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -186,6 +211,36 @@ public class TraktController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<List<TraktShow>>> RecommendedTraktShows([FromRoute] Guid userGuid)
     {
-        return await _traktApi.SendShowRecommendationsRequest(UserHelper.GetTraktUser(userGuid, true)).ConfigureAwait(false);
+        if (!CanAccessUser(userGuid))
+        {
+            return Forbid();
+        }
+
+        var traktUser = UserHelper.GetTraktUser(userGuid, true);
+        if (traktUser == null)
+        {
+            return NotFound();
+        }
+
+        return await _traktApi.SendShowRecommendationsRequest(traktUser).ConfigureAwait(false);
+    }
+
+    private bool CanAccessUser(Guid requestedUserGuid)
+    {
+        var claimUserId = User.FindFirst("uid")?.Value
+            ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (!Guid.TryParse(claimUserId, out var callerGuid))
+        {
+            return false;
+        }
+
+        if (callerGuid == requestedUserGuid)
+        {
+            return true;
+        }
+
+        var caller = _userManager.GetUserById(callerGuid);
+        return caller?.HasPermission(MediaBrowser.Model.Users.PermissionKind.IsAdministrator) == true;
     }
 }

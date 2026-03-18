@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.ChiggiStats.Data;
 using Jellyfin.Plugin.ChiggiStats.Models;
+using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Session;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -151,6 +152,7 @@ public sealed class PlaybackTracker : IHostedService, IDisposable
                     ClientName = session.ClientName,
                     DeviceName = session.DeviceName
                 });
+                _repository.PurgeOldEvents(config.DataRetentionDays);
 
                 _logger.LogDebug(
                     "Recorded playback: {User} watched {Item} for {Minutes:F1} min (completed={Completed}).",

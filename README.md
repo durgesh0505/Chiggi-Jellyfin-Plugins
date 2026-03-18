@@ -37,12 +37,12 @@ This is a fork of the [official Jellyfin Trakt plugin](https://github.com/jellyf
 2. Click **+** and add: `https://raw.githubusercontent.com/durgesh0505/Chiggi-Jellyfin-Plugins/main/manifest.json`
 3. Install plugins from the catalogue
 
-> **Note:** The manifest `sourceUrl` and `checksum` fields are populated automatically when a GitHub Release is published. Until the first release is created, install manually.
+> **Note:** The release workflow builds the archives and prints MD5 checksums, but `manifest.json` still needs a normal repo update with the real `sourceUrl` and `checksum` values after each release.
 
 ### Manual Install
 
 1. Download the `.zip` from [Releases](https://github.com/durgesh0505/Chiggi-Jellyfin-Plugins/releases)
-2. Extract the `.dll` into `<jellyfin-data>/plugins/<plugin-name>/`
+2. Extract the full archive into `<jellyfin-data>/plugins/<plugin-name>/` so all published runtime files stay together
 3. Restart Jellyfin
 
 ## Development
@@ -56,7 +56,7 @@ dotnet build Chiggi.Jellyfin.Plugins.sln
 # Build a specific plugin
 dotnet build src/Jellyfin.Plugin.ChiggiStats/
 
-# Publish (produces DLL ready for Jellyfin)
+# Publish (produces a full plugin directory ready to package)
 dotnet publish src/Jellyfin.Plugin.ChiggiStats/ -c Release -o out/ChiggiStats
 ```
 

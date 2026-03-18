@@ -78,7 +78,7 @@
 
             <!-- Filters -->
             <div class="cs-filters">
-                <div>
+                <div id="cs-user-filter" style="display:none">
                     <label for="cs-user">User</label>
                     <select id="cs-user">
                         <option value="">All Users</option>
@@ -179,6 +179,7 @@
     var PAGE_SIZE = 50;
     var state = { offset: 0, total: 0 };
     var chartInstance = null;
+    var handlersBound = false;
 
     function formatMinutes(mins) {
         if (mins < 60) return mins + 'm';
@@ -227,24 +228,29 @@
     }
 
     function loadUsers() {
-        ApiClient.getUsers().then(function (users) {
-            var sel = document.getElementById('cs-user');
-            // Keep the "All Users" option, add rest
+        var filter = document.getElementById('cs-user-filter');
+        var sel = document.getElementById('cs-user');
+
+        sel.innerHTML = '<option value="">All Users</option>';
+
+        return apiFetch(ApiClient.getUrl('ChiggiStats/users')).then(function (users) {
+            filter.style.display = '';
             users.forEach(function (u) {
                 var opt = document.createElement('option');
-                opt.value = u.Id;
-                opt.textContent = u.Name;
+                opt.value = u.userId;
+                opt.textContent = u.userName;
                 sel.appendChild(opt);
             });
         }).catch(function () {
-            // Non-admin: user selector stays hidden / single option
+            sel.value = '';
+            filter.style.display = 'none';
         });
     }
 
     function loadSummary() {
         var f = getFilters();
         var url = buildUrl('ChiggiStats/summary', f);
-        apiFetch(url).then(function (data) {
+        return apiFetch(url).then(function (data) {
             document.getElementById('cs-total-hours').textContent = data.totalWatchTimeHours;
             document.getElementById('cs-total-sessions').textContent = data.totalSessions;
             document.getElementById('cs-movie-count').textContent = data.movieCount;
@@ -305,7 +311,7 @@
         var f = getFilters();
         var params = Object.assign({}, f, { limit: PAGE_SIZE, offset: state.offset });
         var url = buildUrl('ChiggiStats/activity', params);
-        apiFetch(url).then(function (data) {
+        return apiFetch(url).then(function (data) {
             state.total = data.totalCount;
             renderActivity(data.items || []);
             updatePagination();
@@ -347,8 +353,7 @@
 
     function refresh() {
         state.offset = 0;
-        loadSummary();
-        loadActivity();
+        return Promise.all([loadSummary(), loadActivity()]);
     }
 
     // Set default date range to last 30 days
@@ -360,13 +365,12 @@
         document.getElementById('cs-start').value = past.toISOString().slice(0, 10);
     }
 
-    document.addEventListener('viewshow', function () {
-        Dashboard.showLoadingMsg();
-        setDefaultDates();
-        loadUsers();
-        refresh();
-        Dashboard.hideLoadingMsg();
+    function bindHandlers() {
+        if (handlersBound) {
+            return;
+        }
 
+        handlersBound = true;
         document.getElementById('cs-apply').addEventListener('click', refresh);
         document.getElementById('cs-reset').addEventListener('click', function () {
             document.getElementById('cs-user').value = '';
@@ -385,6 +389,21 @@
                 state.offset += PAGE_SIZE;
                 loadActivity();
             }
+        });
+    }
+
+    document.addEventListener('viewshow', function (event) {
+        if (!event.target || event.target.id !== 'ChiggiStatsPage') {
+            return;
+        }
+
+        Dashboard.showLoadingMsg();
+        setDefaultDates();
+        bindHandlers();
+        loadUsers().finally(function () {
+            refresh().finally(function () {
+                Dashboard.hideLoadingMsg();
+            });
         });
     });
 }());

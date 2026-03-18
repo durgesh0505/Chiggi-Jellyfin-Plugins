@@ -39,8 +39,8 @@ jobs:
       - name: Package plugins
         run: |
           mkdir -p releases
-          cd artifacts/ChiggiStats && zip -j ../../releases/Jellyfin.Plugin.ChiggiStats.zip *.dll && cd ../..
-          cd artifacts/Trakt       && zip -j ../../releases/Jellyfin.Plugin.Trakt.zip *.dll       && cd ../..
+          cd artifacts/ChiggiStats && zip -r ../../releases/Jellyfin.Plugin.ChiggiStats.zip . && cd ../..
+          cd artifacts/Trakt       && zip -r ../../releases/Jellyfin.Plugin.Trakt.zip .       && cd ../..
           md5sum releases/Jellyfin.Plugin.ChiggiStats.zip | awk '{print $1}' > releases/ChiggiStats.md5
           md5sum releases/Jellyfin.Plugin.Trakt.zip       | awk '{print $1}' > releases/Trakt.md5
 
@@ -53,10 +53,9 @@ jobs:
             releases/ChiggiStats.md5
             releases/Trakt.md5
 
-      - name: Update manifest checksums
+      - name: Print checksums for manifest update
         run: |
           STATS_MD5=$(cat releases/ChiggiStats.md5)
           TRAKT_MD5=$(cat releases/Trakt.md5)
-          sed -i "s/PLACEHOLDER_MD5_STATS/$STATS_MD5/g" manifest.json
-          sed -i "s/PLACEHOLDER_MD5_TRAKT/$TRAKT_MD5/g" manifest.json
-          echo "Checksums updated in manifest.json"
+          echo "ChiggiStats MD5: $STATS_MD5"
+          echo "Trakt MD5: $TRAKT_MD5"
