@@ -13,8 +13,12 @@ jobs:
       contents: write
 
     steps:
-      - name: Checkout
+      - name: Checkout main
         uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup .NET 9
         uses: actions/setup-dotnet@v4
@@ -41,8 +45,56 @@ jobs:
           mkdir -p releases
           cd artifacts/ChiggiStats && zip -r ../../releases/Jellyfin.Plugin.ChiggiStats.zip . && cd ../..
           cd artifacts/Trakt       && zip -r ../../releases/Jellyfin.Plugin.Trakt.zip .       && cd ../..
-          md5sum releases/Jellyfin.Plugin.ChiggiStats.zip | awk '{print $1}' > releases/ChiggiStats.md5
-          md5sum releases/Jellyfin.Plugin.Trakt.zip       | awk '{print $1}' > releases/Trakt.md5
+
+      - name: Update manifest.json checksums
+        run: |
+          TAG="${{ github.ref_name }}"
+          # Fall back to a manual tag input when triggered via workflow_dispatch
+          if [ -z "$TAG" ] || [ "$TAG" = "refs/heads/main" ]; then
+            echo "No release tag found — skipping manifest update"
+            exit 0
+          fi
+
+          STATS_MD5=$(md5sum releases/Jellyfin.Plugin.ChiggiStats.zip | awk '{print $1}')
+          TRAKT_MD5=$(md5sum releases/Jellyfin.Plugin.Trakt.zip       | awk '{print $1}')
+          NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          echo "Tag:        $TAG"
+          echo "Stats MD5:  $STATS_MD5"
+          echo "Trakt MD5:  $TRAKT_MD5"
+
+          jq --arg tag       "$TAG" \
+             --arg stats_md5 "$STATS_MD5" \
+             --arg trakt_md5 "$TRAKT_MD5" \
+             --arg now       "$NOW" \
+             '
+             map(
+               if .name == "Chiggi Stats" then
+                 .versions[0].checksum   = $stats_md5 |
+                 .versions[0].sourceUrl  = "https://github.com/durgesh0505/Chiggi-Jellyfin-Plugins/releases/download/" + $tag + "/Jellyfin.Plugin.ChiggiStats.zip" |
+                 .versions[0].timestamp  = $now
+               elif .name == "Trakt" then
+                 .versions[0].checksum   = $trakt_md5 |
+                 .versions[0].sourceUrl  = "https://github.com/durgesh0505/Chiggi-Jellyfin-Plugins/releases/download/" + $tag + "/Jellyfin.Plugin.Trakt.zip" |
+                 .versions[0].timestamp  = $now
+               else . end
+             )
+             ' manifest.json > manifest.tmp && mv manifest.tmp manifest.json
+
+      - name: Commit and push updated manifest.json
+        run: |
+          TAG="${{ github.ref_name }}"
+          if [ -z "$TAG" ] || [ "$TAG" = "refs/heads/main" ]; then
+            echo "Skipping manifest commit — no release tag"
+            exit 0
+          fi
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add manifest.json
+          git diff --cached --quiet && echo "manifest.json unchanged, nothing to commit" && exit 0
+          git commit -m "chore: update manifest.json checksums for $TAG"
+          git push origin HEAD:main
 
       - name: Attach to GitHub Release
         uses: softprops/action-gh-release@v2
@@ -50,12 +102,3 @@ jobs:
           files: |
             releases/Jellyfin.Plugin.ChiggiStats.zip
             releases/Jellyfin.Plugin.Trakt.zip
-            releases/ChiggiStats.md5
-            releases/Trakt.md5
-
-      - name: Print checksums for manifest update
-        run: |
-          STATS_MD5=$(cat releases/ChiggiStats.md5)
-          TRAKT_MD5=$(cat releases/Trakt.md5)
-          echo "ChiggiStats MD5: $STATS_MD5"
-          echo "Trakt MD5: $TRAKT_MD5"
