@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "1.0.1.0",
+        "changelog": "Fix: SQLite native library now found correctly in Jellyfin plugin context (no more Malfunctioned). Fix: database initialisation split into separate statements to prevent startup crash.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/durgesh0505/Chiggi-Jellyfin-Plugins/releases/download/v1.0.1/Jellyfin.Plugin.ChiggiStats.zip",
+        "checksum": "PLACEHOLDER_MD5",
+        "timestamp": "2026-03-18T00:00:00Z"
+      },
+      {
         "version": "1.0.0.0",
         "changelog": "Initial release. Playback tracking with SQLite storage, activity log integration, and in-Jellyfin stats dashboard.",
         "targetAbi": "10.11.0.0",
@@ -25,6 +33,14 @@
     "owner": "durgesh0505",
     "category": "General",
     "versions": [
+      {
+        "version": "27.1.1.0",
+        "changelog": "Fix: restored Trakt settings/configuration page button (missing RootNamespace caused embedded resource path mismatch).",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/durgesh0505/Chiggi-Jellyfin-Plugins/releases/download/v1.0.1/Jellyfin.Plugin.Trakt.zip",
+        "checksum": "PLACEHOLDER_MD5",
+        "timestamp": "2026-03-18T00:00:00Z"
+      },
       {
         "version": "27.1.0.0",
         "changelog": "Fork of official v27 with fixes: #265 rate-limit HasFlag bug, #266 409 Conflict crash, #226 duplicate history (HashSet dedup), #258 null Series on TV scrobble.",

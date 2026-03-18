@@ -3,6 +3,9 @@
   <PropertyGroup>
     <AssemblyName>Jellyfin.Plugin.ChiggiStats</AssemblyName>
     <RootNamespace>Jellyfin.Plugin.ChiggiStats</RootNamespace>
+    <Version>1.0.1.0</Version>
+    <AssemblyVersion>1.0.1.0</AssemblyVersion>
+    <FileVersion>1.0.1.0</FileVersion>
     <Description>Detailed playback statistics and reporting for Jellyfin with advanced filtering.</Description>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
@@ -38,5 +41,17 @@
     <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556" PrivateAssets="All" />
     <PackageReference Include="SmartAnalyzers.MultithreadingAnalyzer" Version="1.1.31" PrivateAssets="All" />
   </ItemGroup>
+
+  <!--
+    Jellyfin's AssemblyLoadContext probes for native libraries in the directory of the
+    requesting managed DLL (the plugin root), not in runtimes/{rid}/native/.
+    Copy all native binaries to the publish root so SQLite is found at runtime.
+  -->
+  <Target Name="FlattenNativeLibraries" AfterTargets="Publish">
+    <ItemGroup>
+      <_NativeLibs Include="$(PublishDir)runtimes/*/native/*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_NativeLibs)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
+  </Target>
 
 </Project>
