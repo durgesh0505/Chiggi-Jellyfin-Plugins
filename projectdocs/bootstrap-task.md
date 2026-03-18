@@ -14,9 +14,9 @@ Compare Claude Code's handoff in `Talk.md` against the actual filesystem.
 Reassess build blockers, security issues, and repository-level gaps.
 
 ## Immediate Next Actions
-Patch the Jellyfin API mismatches reported by the latest CI run.
-Override the `ChiggiStats` analyzer configuration so its backlog is downgraded to warnings instead of blocking the build.
-Push a follow-up fix and re-run GitHub Actions.
+Monitor GitHub Actions for commit `e606645`.
+Confirm that the Jellyfin admin-check API mismatch and `GetSeasonNumber()` compile error are gone.
+Confirm that `ChiggiStats` analyzer findings are now warnings instead of build-blocking errors.
 After the first successful release, update `manifest.json` with real `sourceUrl` and `checksum` values.
 
 ## Status
@@ -36,6 +36,7 @@ The build and publish workflows now zip full publish outputs instead of only `*.
 The fix set has been committed and pushed to `origin/main` as `eed8263`.
 The latest CI run for the follow-up push exposed three real compile/API mismatches that remain unresolved: `HasPermission` and `PermissionKind` do not exist on the current Jellyfin user API, and `Episode.GetSeasonNumber()` does not exist in `ChiggiStats`.
 The same CI run also proved that `ChiggiStats` still has a large StyleCop and .NET analyzer backlog because its project file still treats warnings as errors and does not suppress the same warning families that were already neutralized for `Trakt`.
+Those follow-up fixes have now been committed and pushed to `origin/main` as `e606645`.
 
 ## Notes
 There are no PowerShell scripts in the current directory, so there is nothing to document for PowerShell at this stage.
