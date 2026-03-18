@@ -283,7 +283,8 @@ public class StatsController : ControllerBase
 
     private string? GetAuthenticatedUserId()
     {
-        return User.FindFirst("uid")?.Value
+        return User.FindFirst("Jellyfin-UserId")?.Value
+            ?? User.FindFirst("uid")?.Value
             ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
     }
 

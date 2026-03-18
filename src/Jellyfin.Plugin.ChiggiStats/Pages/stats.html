@@ -18,11 +18,19 @@
         .chiggiStatsPage .cs-tabButton {
             margin: 0;
             min-width: 0;
+            padding: 8px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+            background: transparent;
+            color: inherit;
+            cursor: pointer;
+            font-size: inherit;
         }
 
         .chiggiStatsPage .cs-tabButton-active {
             background: var(--theme-primary-color, #00a4dc) !important;
             color: #fff !important;
+            border-color: transparent !important;
         }
 
         .chiggiStatsPage .cs-grid {
@@ -137,16 +145,16 @@
             <div class="verticalSection">
                 <h1>Chiggi Stats</h1>
                 <div class="cs-tabBar" id="csTabBar">
-                    <button is="emby-button" type="button" class="cs-tabButton cs-tabButton-active" data-tab="overview">Overview</button>
-                    <button is="emby-button" type="button" class="cs-tabButton" data-tab="playback">Playback</button>
-                    <button is="emby-button" type="button" class="cs-tabButton cs-hidden" data-tab="movies" data-admin-only="true">Movies</button>
-                    <button is="emby-button" type="button" class="cs-tabButton cs-hidden" data-tab="series" data-admin-only="true">Series</button>
-                    <button is="emby-button" type="button" class="cs-tabButton cs-hidden" data-tab="seasons" data-admin-only="true">Seasons</button>
-                    <button is="emby-button" type="button" class="cs-tabButton cs-hidden" data-tab="episodes" data-admin-only="true">Episodes</button>
-                    <button is="emby-button" type="button" class="cs-tabButton cs-hidden" data-tab="music" data-admin-only="true">Music</button>
-                    <button is="emby-button" type="button" class="cs-tabButton cs-hidden" data-tab="boxsets" data-admin-only="true">Box Sets</button>
-                    <button is="emby-button" type="button" class="cs-tabButton cs-hidden" data-tab="users" data-admin-only="true">Users</button>
-                    <button is="emby-button" type="button" class="cs-tabButton cs-hidden" data-tab="devices" data-admin-only="true">Devices</button>
+                    <button type="button" class="cs-tabButton cs-tabButton-active" data-tab="overview">Overview</button>
+                    <button type="button" class="cs-tabButton" data-tab="playback">Playback</button>
+                    <button type="button" class="cs-tabButton cs-hidden" data-tab="movies" data-admin-only="true">Movies</button>
+                    <button type="button" class="cs-tabButton cs-hidden" data-tab="series" data-admin-only="true">Series</button>
+                    <button type="button" class="cs-tabButton cs-hidden" data-tab="seasons" data-admin-only="true">Seasons</button>
+                    <button type="button" class="cs-tabButton cs-hidden" data-tab="episodes" data-admin-only="true">Episodes</button>
+                    <button type="button" class="cs-tabButton cs-hidden" data-tab="music" data-admin-only="true">Music</button>
+                    <button type="button" class="cs-tabButton cs-hidden" data-tab="boxsets" data-admin-only="true">Box Sets</button>
+                    <button type="button" class="cs-tabButton cs-hidden" data-tab="users" data-admin-only="true">Users</button>
+                    <button type="button" class="cs-tabButton cs-hidden" data-tab="devices" data-admin-only="true">Devices</button>
                     <a id="csSettingsLink" class="cs-tabButton button-link emby-button cs-hidden" href="#/configurationpage?name=Chiggi%20Stats" data-admin-only="true">Settings</a>
                 </div>
             </div>

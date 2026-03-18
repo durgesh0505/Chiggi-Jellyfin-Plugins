@@ -14,11 +14,19 @@
         .chiggiStatsConfigPage .cs-tabButton {
             margin: 0;
             min-width: 0;
+            padding: 8px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+            background: transparent;
+            color: inherit;
+            cursor: pointer;
+            font-size: inherit;
         }
 
         .chiggiStatsConfigPage .cs-tabButton-active {
             background: var(--theme-primary-color, #00a4dc) !important;
             color: #fff !important;
+            border-color: transparent !important;
         }
     </style>
     <div data-role="content">
@@ -27,7 +35,7 @@
                 <h1>Chiggi Stats Settings</h1>
                 <div class="cs-tabBar">
                     <a class="cs-tabButton button-link emby-button" href="#/configurationpage?name=chiggistats">Dashboard</a>
-                    <button is="emby-button" type="button" class="cs-tabButton cs-tabButton-active">Settings</button>
+                    <button type="button" class="cs-tabButton cs-tabButton-active">Settings</button>
                 </div>
             </div>
 
