@@ -11,9 +11,9 @@
         "version": "1.0.6.0",
         "changelog": "Fix: GetAuthenticatedUserId() now checks 'Jellyfin-UserId' claim first (Jellyfin 10.11 InternalClaimTypes.UserId) — wrong claim name was causing all data endpoints to return 401 and show 'Failed to load data.'. Fix: remove is=\"emby-button\" from tab buttons so page CSS fully controls their appearance — emby-button component CSS was overriding inactive tab button background to grey regardless of !important.",
         "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/durgesh0505/Chiggi-Jellyfin-Plugins/releases/download/v1.0.6/Jellyfin.Plugin.ChiggiStats.zip",
-        "checksum": "2515cb5f296d01b50aa37f726ce15d19",
-        "timestamp": "2026-03-18T23:49:35Z"
+        "sourceUrl": "https://github.com/durgesh0505/Chiggi-Jellyfin-Plugins/releases/download/v1.0.7/Jellyfin.Plugin.ChiggiStats.zip",
+        "checksum": "b3f8c4e9a063774919f4072bfa806fe3",
+        "timestamp": "2026-03-19T00:24:19Z"
       },
       {
         "version": "1.0.5.0",
@@ -77,9 +77,9 @@
         "version": "27.1.2.0",
         "changelog": "Fix: add ExcludeAssets=runtime to Jellyfin package references — without it, Jellyfin's own assemblies (MediaBrowser.Controller, MediaBrowser.Model, Jellyfin.Data, etc.) and all transitive deps (EFCore, Polly, ICU4N, etc.) were bundled into the plugin zip. Jellyfin's PluginLoadContext loaded duplicate instances of these assemblies, causing IHasWebPages type identity check to fail silently — plugin loaded but settings page never appeared.",
         "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/durgesh0505/Chiggi-Jellyfin-Plugins/releases/download/v1.0.6/Jellyfin.Plugin.Trakt.zip",
-        "checksum": "PLACEHOLDER_MD5",
-        "timestamp": "2026-03-18T00:00:00Z"
+        "sourceUrl": "https://github.com/durgesh0505/Chiggi-Jellyfin-Plugins/releases/download/v1.0.7/Jellyfin.Plugin.Trakt.zip",
+        "checksum": "e867ac54a537f5f5ef2e3caf57dce36c",
+        "timestamp": "2026-03-19T00:24:19Z"
       },
       {
         "version": "27.1.1.0",
