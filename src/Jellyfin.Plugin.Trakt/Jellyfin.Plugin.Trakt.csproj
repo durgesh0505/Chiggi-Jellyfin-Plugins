@@ -4,9 +4,9 @@
     <TargetFramework>net9.0</TargetFramework>
     <!-- Fork of jellyfin/jellyfin-plugin-trakt v27 with bug fixes (#265, #266, #226, #258) -->
     <RootNamespace>Trakt</RootNamespace>
-    <Version>27.1.3.0</Version>
-    <AssemblyVersion>27.1.3.0</AssemblyVersion>
-    <FileVersion>27.1.3.0</FileVersion>
+    <Version>27.1.4.0</Version>
+    <AssemblyVersion>27.1.4.0</AssemblyVersion>
+    <FileVersion>27.1.4.0</FileVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <Nullable>disable</Nullable>
