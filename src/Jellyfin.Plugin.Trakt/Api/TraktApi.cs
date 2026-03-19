@@ -1226,6 +1226,20 @@ public class TraktApi
                 return default(T);
             }
 
+            // 420 Account Limit Exceeded: free Trakt accounts are capped at 100 collection items
+            // (enforced January 2025). Throwing aborts the entire sync task. Log a warning so the
+            // user knows why items were skipped, then return default so remaining work continues.
+            if ((int)response.StatusCode == 420)
+            {
+                _logger.LogWarning(
+                    "Trakt returned 420 Account Limit Exceeded for {Url}. "
+                    + "Free accounts are limited to 100 collection items. "
+                    + "Disable 'Sync Jellyfin library to Trakt Collection' in the Trakt settings page, "
+                    + "or upgrade to Trakt VIP for unlimited collection sync.",
+                    url);
+                return default(T);
+            }
+
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<T>(_jsonOptions, cancellationToken).ConfigureAwait(false);
         }

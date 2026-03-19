@@ -74,6 +74,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "27.1.5.0",
+        "changelog": "Fix: handle HTTP 420 Account Limit Exceeded from Trakt gracefully — free accounts are capped at 100 collection items (enforced Jan 2025). Previously this threw an exception and aborted the entire sync. Now logs a clear warning and continues. Disable collection sync in Trakt settings or upgrade to Trakt VIP to resolve.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/durgesh0505/Chiggi-Jellyfin-Plugins/releases/download/v1.0.10/Jellyfin.Plugin.Trakt.zip",
+        "checksum": "PLACEHOLDER_MD5",
+        "timestamp": "2026-03-18T00:00:00Z"
+      },
+      {
         "version": "27.1.4.0",
         "changelog": "Fix: TraktMetadata.Is3D changed from bool to bool? — Trakt API returns null for the 3d field on some collection items, causing JsonException on sync. Lifted bool? != bool comparison in Extensions.cs remains valid and correct.",
         "targetAbi": "10.11.0.0",
