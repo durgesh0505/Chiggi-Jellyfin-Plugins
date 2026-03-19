@@ -11,9 +11,9 @@
         "version": "1.0.6.0",
         "changelog": "Fix: GetAuthenticatedUserId() now checks 'Jellyfin-UserId' claim first (Jellyfin 10.11 InternalClaimTypes.UserId) — wrong claim name was causing all data endpoints to return 401 and show 'Failed to load data.'. Fix: remove is=\"emby-button\" from tab buttons so page CSS fully controls their appearance — emby-button component CSS was overriding inactive tab button background to grey regardless of !important.",
         "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/durgesh0505/Chiggi-Jellyfin-Plugins/releases/download/v1.0.7/Jellyfin.Plugin.ChiggiStats.zip",
-        "checksum": "b3f8c4e9a063774919f4072bfa806fe3",
-        "timestamp": "2026-03-19T00:24:19Z"
+        "sourceUrl": "https://github.com/durgesh0505/Chiggi-Jellyfin-Plugins/releases/download/v1.0.8/Jellyfin.Plugin.ChiggiStats.zip",
+        "checksum": "3da42819bdcfd9f2d72ac802563bf268",
+        "timestamp": "2026-03-19T00:33:19Z"
       },
       {
         "version": "1.0.5.0",
@@ -78,8 +78,8 @@
         "changelog": "Fix: remove explicit Microsoft.Extensions.Http 10.0.1 package reference — it is a .NET 10 package that pulled in Microsoft.Extensions.DependencyInjection.Abstractions v10 as a bundled dependency. At runtime Jellyfin provides .NET 9 versions of these assemblies, causing IServiceCollection type identity mismatch in RegisterServices, making the plugin fail with NotSupported. Microsoft.Extensions.Http is already supplied by the FrameworkReference to Microsoft.AspNetCore.App.",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/durgesh0505/Chiggi-Jellyfin-Plugins/releases/download/v1.0.8/Jellyfin.Plugin.Trakt.zip",
-        "checksum": "PLACEHOLDER_MD5",
-        "timestamp": "2026-03-18T00:00:00Z"
+        "checksum": "a86fe6d747d7ade550824aa071a1e896",
+        "timestamp": "2026-03-19T00:33:19Z"
       },
       {
         "version": "27.1.2.0",
