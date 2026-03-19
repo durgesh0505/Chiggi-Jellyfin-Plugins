@@ -4,9 +4,9 @@
     <TargetFramework>net9.0</TargetFramework>
     <!-- Fork of jellyfin/jellyfin-plugin-trakt v27 with bug fixes (#265, #266, #226, #258) -->
     <RootNamespace>Trakt</RootNamespace>
-    <Version>27.1.1.0</Version>
-    <AssemblyVersion>27.1.1.0</AssemblyVersion>
-    <FileVersion>27.1.1.0</FileVersion>
+    <Version>27.1.2.0</Version>
+    <AssemblyVersion>27.1.2.0</AssemblyVersion>
+    <FileVersion>27.1.2.0</FileVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <Nullable>disable</Nullable>
@@ -25,8 +25,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Jellyfin.Data" Version="10.*-*" />
-    <PackageReference Include="Jellyfin.Controller" Version="10.*-*" />
+    <PackageReference Include="Jellyfin.Data" Version="10.*-*">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="Jellyfin.Controller" Version="10.*-*">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.1" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
