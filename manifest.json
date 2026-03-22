@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "1.0.8.0",
+        "changelog": "Fix: replace [Authorize(Policy = \"DefaultAuthorization\")] with [Authorize] on activity and summary endpoints — Jellyfin 10.11 does not register the 'DefaultAuthorization' named policy, causing InvalidOperationException before the handler ran. Fix: inject IAuthorizationContext so user resolution uses Jellyfin's own auth pipeline rather than hardcoded claim names. Fix: switch loadOverview() from Promise.all to Promise.allSettled so summary data renders even if the admin overview call fails.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/durgesh0505/Chiggi-Jellyfin-Plugins/releases/download/v1.0.12/Jellyfin.Plugin.ChiggiStats.zip",
+        "checksum": "PLACEHOLDER_MD5",
+        "timestamp": "2026-03-21T00:00:00Z"
+      },
+      {
         "version": "1.0.7.0",
         "changelog": "Fix: inject IAuthorizationContext into StatsController so user resolution uses Jellyfin's own auth pipeline rather than hardcoded claim names — claim-only resolution failed silently in Jellyfin 10.11 causing all data endpoints to return 401. Fix: switch loadOverview() from Promise.all to Promise.allSettled so summary data renders even when the admin-only reports/overview call fails (e.g. auth edge case or non-admin session).",
         "targetAbi": "10.11.0.0",

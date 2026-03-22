@@ -71,7 +71,7 @@ public class StatsController : ControllerBase
     /// <param name="offset">Number of records to skip (default 0).</param>
     /// <returns>Paginated activity list.</returns>
     [HttpGet("activity")]
-    [Authorize(Policy = "DefaultAuthorization")]
+    [Authorize]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ActivityResponse>> GetActivity(
@@ -116,7 +116,7 @@ public class StatsController : ControllerBase
     /// <param name="endDate">End of date range (UTC).</param>
     /// <returns>Summary statistics.</returns>
     [HttpGet("summary")]
-    [Authorize(Policy = "DefaultAuthorization")]
+    [Authorize]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<SummaryResponse>> GetSummary(
