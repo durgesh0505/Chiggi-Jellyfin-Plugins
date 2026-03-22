@@ -12,8 +12,8 @@
         "changelog": "Fix: inject IAuthorizationContext into StatsController so user resolution uses Jellyfin's own auth pipeline rather than hardcoded claim names — claim-only resolution failed silently in Jellyfin 10.11 causing all data endpoints to return 401. Fix: switch loadOverview() from Promise.all to Promise.allSettled so summary data renders even when the admin-only reports/overview call fails (e.g. auth edge case or non-admin session).",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/durgesh0505/Chiggi-Jellyfin-Plugins/releases/download/v1.0.11/Jellyfin.Plugin.ChiggiStats.zip",
-        "checksum": "PLACEHOLDER_MD5",
-        "timestamp": "2026-03-21T00:00:00Z"
+        "checksum": "b220756702fa05980d89644a408cc41f",
+        "timestamp": "2026-03-22T00:55:24Z"
       },
       {
         "version": "1.0.6.0",
@@ -85,9 +85,9 @@
         "version": "27.1.5.0",
         "changelog": "Fix: handle HTTP 420 Account Limit Exceeded from Trakt gracefully — free accounts are capped at 100 collection items (enforced Jan 2025). Previously this threw an exception and aborted the entire sync. Now logs a clear warning and continues. Disable collection sync in Trakt settings or upgrade to Trakt VIP to resolve.",
         "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/durgesh0505/Chiggi-Jellyfin-Plugins/releases/download/v1.0.10/Jellyfin.Plugin.Trakt.zip",
-        "checksum": "03198803810bff779d6d102c3a161728",
-        "timestamp": "2026-03-19T01:13:01Z"
+        "sourceUrl": "https://github.com/durgesh0505/Chiggi-Jellyfin-Plugins/releases/download/v1.0.11/Jellyfin.Plugin.Trakt.zip",
+        "checksum": "f3ad904f067f28066a6b668f3e601f7d",
+        "timestamp": "2026-03-22T00:55:24Z"
       },
       {
         "version": "27.1.4.0",
