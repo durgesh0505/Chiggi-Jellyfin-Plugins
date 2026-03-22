@@ -127,6 +127,22 @@
             font-size: 0.8em;
         }
 
+        .chiggiStatsPage .cs-btn {
+            padding: 8px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+            background: transparent;
+            color: inherit;
+            cursor: pointer;
+            font-size: inherit;
+        }
+
+        .chiggiStatsPage .cs-btn-primary {
+            background: var(--theme-primary-color, #00a4dc);
+            color: #fff;
+            border-color: transparent;
+        }
+
         .chiggiStatsPage .cs-pagination {
             display: flex;
             align-items: center;
@@ -183,10 +199,10 @@
                         <input is="emby-input" id="csEndDate" type="date" />
                     </div>
                     <div>
-                        <button is="emby-button" id="csApplyFilters" type="button" class="raised">Apply</button>
+                        <button type="button" id="csApplyFilters" class="cs-btn cs-btn-primary">Apply</button>
                     </div>
                     <div>
-                        <button is="emby-button" id="csResetFilters" type="button">Reset</button>
+                        <button type="button" id="csResetFilters" class="cs-btn">Reset</button>
                     </div>
                 </div>
             </div>
@@ -232,9 +248,9 @@
                         <tbody id="csActivityBody"></tbody>
                     </table>
                     <div class="cs-pagination">
-                        <button is="emby-button" id="csPlaybackPrev" type="button">Prev</button>
+                        <button type="button" id="csPlaybackPrev" class="cs-btn">Prev</button>
                         <span id="csPlaybackPageInfo" class="cs-pill"></span>
-                        <button is="emby-button" id="csPlaybackNext" type="button">Next</button>
+                        <button type="button" id="csPlaybackNext" class="cs-btn">Next</button>
                     </div>
                 </div>
             </div>
@@ -248,9 +264,9 @@
                         <tbody id="csReportBody"></tbody>
                     </table>
                     <div class="cs-pagination">
-                        <button is="emby-button" id="csReportPrev" type="button">Prev</button>
+                        <button type="button" id="csReportPrev" class="cs-btn">Prev</button>
                         <span id="csReportPageInfo" class="cs-pill"></span>
-                        <button is="emby-button" id="csReportNext" type="button">Next</button>
+                        <button type="button" id="csReportNext" class="cs-btn">Next</button>
                     </div>
                 </div>
             </div>
