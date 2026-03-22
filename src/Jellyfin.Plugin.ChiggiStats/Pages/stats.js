@@ -56,8 +56,8 @@ const ChiggiStatsPage = {
             userFilter.classList.remove('cs-hidden');
             users.forEach(user => {
                 const option = document.createElement('option');
-                option.value = user.userId;
-                option.textContent = user.userName;
+                option.value = user.UserId;
+                option.textContent = user.UserName;
                 userSelect.appendChild(option);
             });
         }).catch(() => {
@@ -130,7 +130,6 @@ const ChiggiStatsPage = {
             const overviewResult = results[0];
             const summaryResult = results[1];
 
-            // Summary is required — if it failed, show the error state for all panels.
             if (summaryResult.status !== 'fulfilled') {
                 console.error('Chiggi Stats summary error', summaryResult.reason);
                 ChiggiStatsPage.renderEmpty(view.querySelector('#csOverviewMetrics'), 'Failed to load overview data.');
@@ -140,22 +139,21 @@ const ChiggiStatsPage = {
             }
 
             const summary = summaryResult.value;
-            // Admin overview is optional — degrade gracefully if it fails (e.g. non-admin or 10.11 auth edge case).
             const overview = overviewResult.status === 'fulfilled' ? overviewResult.value : null;
 
-            if (overview && overview.metrics) {
-                ChiggiStatsPage.renderMetrics(view, overview.metrics);
+            if (overview && overview.Metrics) {
+                ChiggiStatsPage.renderMetrics(view, overview.Metrics);
             } else {
                 ChiggiStatsPage.renderMetrics(view, [
-                    { key: 'hours', label: 'Hours Watched', value: String(summary.totalWatchTimeHours) },
-                    { key: 'sessions', label: 'Sessions', value: String(summary.totalSessions) },
-                    { key: 'movies', label: 'Movies', value: String(summary.movieCount) },
-                    { key: 'episodes', label: 'Episodes', value: String(summary.episodeCount) }
+                    { Key: 'hours',    Label: 'Hours Watched', Value: String(summary.TotalWatchTimeHours) },
+                    { Key: 'sessions', Label: 'Sessions',      Value: String(summary.TotalSessions) },
+                    { Key: 'movies',   Label: 'Movies',        Value: String(summary.MovieCount) },
+                    { Key: 'episodes', Label: 'Episodes',      Value: String(summary.EpisodeCount) }
                 ]);
             }
 
-            ChiggiStatsPage.renderTrend(view, summary.watchTimeByDay || []);
-            ChiggiStatsPage.renderTopItems(view, summary.topItems || []);
+            ChiggiStatsPage.renderTrend(view, summary.WatchTimeByDay || []);
+            ChiggiStatsPage.renderTopItems(view, summary.TopItems || []);
         }).finally(() => {
             Dashboard.hideLoadingMsg();
         });
@@ -168,8 +166,8 @@ const ChiggiStatsPage = {
         filters.offset = ChiggiStatsPage.state.playbackOffset;
 
         return ChiggiStatsPage.fetchJson('ChiggiStats/activity', filters).then(result => {
-            ChiggiStatsPage.state.playbackTotal = result.totalCount;
-            ChiggiStatsPage.renderPlayback(view, result.items || []);
+            ChiggiStatsPage.state.playbackTotal = result.TotalCount;
+            ChiggiStatsPage.renderPlayback(view, result.Items || []);
             ChiggiStatsPage.updatePlaybackPagination(view);
         }).catch(error => {
             console.error('Chiggi Stats playback error', error);
@@ -190,10 +188,10 @@ const ChiggiStatsPage = {
             limit: limit,
             offset: offset
         }).then(report => {
-            ChiggiStatsPage.state.reportTotal = report.totalCount;
-            view.querySelector('#csReportHeading').textContent = report.title;
-            view.querySelector('#csReportSummary').textContent = report.totalCount + ' rows';
-            ChiggiStatsPage.renderReport(view, report.columns || [], report.rows || []);
+            ChiggiStatsPage.state.reportTotal = report.TotalCount;
+            view.querySelector('#csReportHeading').textContent = report.Title;
+            view.querySelector('#csReportSummary').textContent = report.TotalCount + ' rows';
+            ChiggiStatsPage.renderReport(view, report.Columns || [], report.Rows || []);
             ChiggiStatsPage.updateReportPagination(view);
         }).catch(error => {
             console.error('Chiggi Stats report error', error);
@@ -219,8 +217,8 @@ const ChiggiStatsPage = {
             const card = document.createElement('div');
             card.className = 'cs-card';
             card.innerHTML =
-                '<div class="cs-card-value">' + ChiggiStatsPage.escape(metric.value) + '</div>' +
-                '<span class="cs-card-label">' + ChiggiStatsPage.escape(metric.label) + '</span>';
+                '<div class="cs-card-value">' + ChiggiStatsPage.escape(metric.Value) + '</div>' +
+                '<span class="cs-card-label">' + ChiggiStatsPage.escape(metric.Label) + '</span>';
             container.appendChild(card);
         });
     },
@@ -234,22 +232,22 @@ const ChiggiStatsPage = {
             return;
         }
 
-        const maxMinutes = Math.max.apply(null, days.map(day => day.minutes));
+        const maxMinutes = Math.max.apply(null, days.map(day => day.Minutes));
         days.forEach(day => {
             const wrap = document.createElement('div');
             wrap.className = 'cs-trendBarWrap';
 
             const value = document.createElement('div');
             value.className = 'cs-trendValue';
-            value.textContent = day.minutes + 'm';
+            value.textContent = day.Minutes + 'm';
 
             const bar = document.createElement('div');
             bar.className = 'cs-trendBar';
-            bar.style.height = Math.max(8, Math.round((day.minutes / maxMinutes) * 150)) + 'px';
+            bar.style.height = Math.max(8, Math.round((day.Minutes / maxMinutes) * 150)) + 'px';
 
             const label = document.createElement('div');
             label.className = 'cs-trendLabel';
-            label.textContent = day.date.slice(5);
+            label.textContent = day.Date.slice(5);
 
             wrap.appendChild(value);
             wrap.appendChild(bar);
@@ -268,12 +266,12 @@ const ChiggiStatsPage = {
         body.innerHTML = '';
         items.forEach(item => {
             const row = document.createElement('tr');
-            const title = item.seriesName || item.itemName;
+            const title = item.SeriesName || item.ItemName;
             row.innerHTML =
                 '<td>' + ChiggiStatsPage.escape(title) + '</td>' +
-                '<td>' + ChiggiStatsPage.escape(item.mediaType) + '</td>' +
-                '<td>' + ChiggiStatsPage.escape(String(item.watchCount)) + '</td>' +
-                '<td>' + ChiggiStatsPage.escape(ChiggiStatsPage.formatMinutes(item.totalMinutes)) + '</td>';
+                '<td>' + ChiggiStatsPage.escape(item.MediaType) + '</td>' +
+                '<td>' + ChiggiStatsPage.escape(String(item.WatchCount)) + '</td>' +
+                '<td>' + ChiggiStatsPage.escape(ChiggiStatsPage.formatMinutes(item.TotalMinutes)) + '</td>';
             body.appendChild(row);
         });
     },
@@ -288,17 +286,17 @@ const ChiggiStatsPage = {
         body.innerHTML = '';
         items.forEach(item => {
             const row = document.createElement('tr');
-            const title = item.seriesName
-                ? item.seriesName + ' S' + (item.seasonNumber || '?') + 'E' + (item.episodeNumber || '?') + ' - ' + item.itemName
-                : item.itemName;
+            const title = item.SeriesName
+                ? item.SeriesName + ' S' + (item.SeasonNumber || '?') + 'E' + (item.EpisodeNumber || '?') + ' - ' + item.ItemName
+                : item.ItemName;
 
             row.innerHTML =
-                '<td>' + ChiggiStatsPage.escape(item.userName || '-') + '</td>' +
+                '<td>' + ChiggiStatsPage.escape(item.UserName || '-') + '</td>' +
                 '<td>' + ChiggiStatsPage.escape(title) + '</td>' +
-                '<td>' + ChiggiStatsPage.escape(item.mediaType) + '</td>' +
-                '<td>' + ChiggiStatsPage.escape(ChiggiStatsPage.formatMinutes(Math.round(item.durationMinutes))) + '</td>' +
-                '<td>' + ChiggiStatsPage.escape(ChiggiStatsPage.formatDate(item.startTime)) + '</td>' +
-                '<td>' + ChiggiStatsPage.escape(item.clientName || '-') + '</td>';
+                '<td>' + ChiggiStatsPage.escape(item.MediaType) + '</td>' +
+                '<td>' + ChiggiStatsPage.escape(ChiggiStatsPage.formatMinutes(Math.round(item.DurationMinutes))) + '</td>' +
+                '<td>' + ChiggiStatsPage.escape(ChiggiStatsPage.formatDate(item.StartTime)) + '</td>' +
+                '<td>' + ChiggiStatsPage.escape(item.ClientName || '-') + '</td>';
             body.appendChild(row);
         });
     },
@@ -317,7 +315,7 @@ const ChiggiStatsPage = {
         const headRow = document.createElement('tr');
         columns.forEach(column => {
             const th = document.createElement('th');
-            th.textContent = column.label;
+            th.textContent = column.Label;
             headRow.appendChild(th);
         });
         head.appendChild(headRow);
@@ -331,7 +329,7 @@ const ChiggiStatsPage = {
             const tr = document.createElement('tr');
             columns.forEach(column => {
                 const td = document.createElement('td');
-                td.textContent = row.cells[column.key] || '-';
+                td.textContent = row.Cells[column.Key] || '-';
                 tr.appendChild(td);
             });
             body.appendChild(tr);
