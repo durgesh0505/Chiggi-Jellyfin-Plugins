@@ -21,7 +21,7 @@ public sealed class PlaybackTracker : IHostedService, IDisposable
     private readonly SqliteRepository _repository;
     private readonly ILogger<PlaybackTracker> _logger;
 
-    // Tracks in-progress sessions: sessionId → start metadata
+    // Tracks in-progress sessions: "sessionId:userGuid" → start metadata
     private readonly ConcurrentDictionary<string, ActiveSession> _activeSessions = new();
 
     /// <summary>
@@ -65,7 +65,7 @@ public sealed class PlaybackTracker : IHostedService, IDisposable
             return;
         }
 
-        var mediaType = args.Item.GetType().Name; // Movie, Episode, Audio, etc.
+        var mediaType = args.Item.GetType().Name;
         string? seriesName = null;
         int? seasonNumber = null;
         int? episodeNumber = null;
@@ -77,13 +77,26 @@ public sealed class PlaybackTracker : IHostedService, IDisposable
             episodeNumber = episode.IndexNumber;
         }
 
-        foreach (var user in args.Users)
+        // In Jellyfin 10.11, args.Users can be empty; the user is on args.Session instead.
+        // Build a list of (userId, userName) from whichever source has data.
+        var users = ResolveUsers(args.Users, args.Session);
+
+        if (users.Length == 0)
         {
-            var sessionKey = $"{args.Session.Id}:{user.Id}";
+            _logger.LogDebug(
+                "Chiggi Stats: skipping PlaybackStart for {Item} — no user on session {SessionId}.",
+                args.Item.Name,
+                args.Session.Id);
+            return;
+        }
+
+        foreach (var (userId, userName) in users)
+        {
+            var sessionKey = $"{args.Session.Id}:{userId}";
             _activeSessions[sessionKey] = new ActiveSession
             {
-                UserId = user.Id.ToString("N"),
-                UserName = user.Username,
+                UserId = userId.ToString("N"),
+                UserName = userName,
                 ItemId = args.Item.Id.ToString("N"),
                 ItemName = args.Item.Name ?? string.Empty,
                 MediaType = mediaType,
@@ -94,6 +107,13 @@ public sealed class PlaybackTracker : IHostedService, IDisposable
                 ClientName = args.Session.Client,
                 DeviceName = args.Session.DeviceName
             };
+
+            _logger.LogInformation(
+                "Chiggi Stats: tracking start — {User} playing {Item} ({MediaType}) on {Device}.",
+                userName,
+                args.Item.Name,
+                mediaType,
+                args.Session.DeviceName ?? args.Session.Client ?? "unknown");
         }
     }
 
@@ -110,13 +130,27 @@ public sealed class PlaybackTracker : IHostedService, IDisposable
             return;
         }
 
-        foreach (var user in args.Users)
+        var users = ResolveUsers(args.Users, args.Session);
+
+        if (users.Length == 0)
         {
-            var sessionKey = $"{args.Session.Id}:{user.Id}";
+            _logger.LogDebug(
+                "Chiggi Stats: skipping PlaybackStopped for {Item} — no user on session {SessionId}.",
+                args.Item.Name,
+                args.Session.Id);
+            return;
+        }
+
+        foreach (var (userId, userName) in users)
+        {
+            var sessionKey = $"{args.Session.Id}:{userId}";
 
             if (!_activeSessions.TryRemove(sessionKey, out var session))
             {
-                // No start event was captured; skip
+                _logger.LogDebug(
+                    "Chiggi Stats: no matching start event for session {SessionKey} ({Item}); skipping.",
+                    sessionKey,
+                    args.Item.Name);
                 continue;
             }
 
@@ -126,7 +160,7 @@ public sealed class PlaybackTracker : IHostedService, IDisposable
             if (durationTicks < minimumTicks)
             {
                 _logger.LogDebug(
-                    "Ignoring short playback ({DurationSec}s < {MinSec}s) of {Item} by {User}.",
+                    "Chiggi Stats: ignoring short playback ({DurationSec}s < {MinSec}s) of {Item} by {User}.",
                     durationTicks / TimeSpan.TicksPerSecond,
                     config.MinimumPlaybackSeconds,
                     session.ItemName,
@@ -154,8 +188,8 @@ public sealed class PlaybackTracker : IHostedService, IDisposable
                 });
                 _repository.PurgeOldEvents(config.DataRetentionDays);
 
-                _logger.LogDebug(
-                    "Recorded playback: {User} watched {Item} for {Minutes:F1} min (completed={Completed}).",
+                _logger.LogInformation(
+                    "Chiggi Stats: recorded — {User} watched {Item} for {Minutes:F1} min (completed={Completed}).",
                     session.UserName,
                     session.ItemName,
                     durationTicks / (double)TimeSpan.TicksPerMinute,
@@ -163,9 +197,34 @@ public sealed class PlaybackTracker : IHostedService, IDisposable
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to record playback event for {Item}.", session.ItemName);
+                _logger.LogError(ex, "Chiggi Stats: failed to record playback event for {Item}.", session.ItemName);
             }
         }
+    }
+
+    // Builds the user list from args.Users when available; falls back to the session's own
+    // UserId/UserName for Jellyfin 10.11+ where args.Users is sometimes empty.
+    private static (Guid Id, string Name)[] ResolveUsers(
+        System.Collections.Generic.IReadOnlyList<Jellyfin.Database.Implementations.Entities.User> argsUsers,
+        SessionInfo session)
+    {
+        if (argsUsers.Count > 0)
+        {
+            var result = new (Guid, string)[argsUsers.Count];
+            for (var i = 0; i < argsUsers.Count; i++)
+            {
+                result[i] = (argsUsers[i].Id, argsUsers[i].Username);
+            }
+
+            return result;
+        }
+
+        if (session.UserId != Guid.Empty)
+        {
+            return new[] { (session.UserId, session.UserName ?? string.Empty) };
+        }
+
+        return Array.Empty<(Guid, string)>();
     }
 
     /// <inheritdoc />
