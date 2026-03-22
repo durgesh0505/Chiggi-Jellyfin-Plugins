@@ -12,8 +12,8 @@
         "changelog": "Fix: endDate filter now covers the full selected day — bare date strings from the UI were parsed as midnight UTC, causing all same-day playback events to be excluded from every query and the stats dashboard to appear empty.",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/durgesh0505/Chiggi-Jellyfin-Plugins/releases/download/v1.0.16/Jellyfin.Plugin.ChiggiStats.zip",
-        "checksum": "00000000000000000000000000000000",
-        "timestamp": "2026-03-22T00:00:00Z"
+        "checksum": "068d17ca1ce019795e7be0a34b8115d8",
+        "timestamp": "2026-03-22T14:30:11Z"
       },
       {
         "version": "1.0.11.0",
@@ -125,9 +125,9 @@
         "version": "27.1.5.0",
         "changelog": "Fix: handle HTTP 420 Account Limit Exceeded from Trakt gracefully — free accounts are capped at 100 collection items (enforced Jan 2025). Previously this threw an exception and aborted the entire sync. Now logs a clear warning and continues. Disable collection sync in Trakt settings or upgrade to Trakt VIP to resolve.",
         "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/durgesh0505/Chiggi-Jellyfin-Plugins/releases/download/v1.0.15/Jellyfin.Plugin.Trakt.zip",
-        "checksum": "90f298a607f51a043b39305bab233227",
-        "timestamp": "2026-03-22T13:42:02Z"
+        "sourceUrl": "https://github.com/durgesh0505/Chiggi-Jellyfin-Plugins/releases/download/v1.0.16/Jellyfin.Plugin.Trakt.zip",
+        "checksum": "f8b3b8838414587638ed831d316c238f",
+        "timestamp": "2026-03-22T14:30:11Z"
       },
       {
         "version": "27.1.4.0",
