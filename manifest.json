@@ -12,8 +12,8 @@
         "changelog": "Fix: replace [Authorize(Policy = \"DefaultAuthorization\")] with [Authorize] on activity and summary endpoints — Jellyfin 10.11 does not register the 'DefaultAuthorization' named policy, causing InvalidOperationException before the handler ran. Fix: inject IAuthorizationContext so user resolution uses Jellyfin's own auth pipeline rather than hardcoded claim names. Fix: switch loadOverview() from Promise.all to Promise.allSettled so summary data renders even if the admin overview call fails.",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/durgesh0505/Chiggi-Jellyfin-Plugins/releases/download/v1.0.12/Jellyfin.Plugin.ChiggiStats.zip",
-        "checksum": "PLACEHOLDER_MD5",
-        "timestamp": "2026-03-21T00:00:00Z"
+        "checksum": "2c61738504dfb0eb432cc13fe3e32756",
+        "timestamp": "2026-03-22T01:03:51Z"
       },
       {
         "version": "1.0.7.0",
@@ -93,9 +93,9 @@
         "version": "27.1.5.0",
         "changelog": "Fix: handle HTTP 420 Account Limit Exceeded from Trakt gracefully — free accounts are capped at 100 collection items (enforced Jan 2025). Previously this threw an exception and aborted the entire sync. Now logs a clear warning and continues. Disable collection sync in Trakt settings or upgrade to Trakt VIP to resolve.",
         "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/durgesh0505/Chiggi-Jellyfin-Plugins/releases/download/v1.0.11/Jellyfin.Plugin.Trakt.zip",
-        "checksum": "f3ad904f067f28066a6b668f3e601f7d",
-        "timestamp": "2026-03-22T00:55:24Z"
+        "sourceUrl": "https://github.com/durgesh0505/Chiggi-Jellyfin-Plugins/releases/download/v1.0.12/Jellyfin.Plugin.Trakt.zip",
+        "checksum": "00152eb2966e0c90d4ee2b6af223262c",
+        "timestamp": "2026-03-22T01:03:51Z"
       },
       {
         "version": "27.1.4.0",
