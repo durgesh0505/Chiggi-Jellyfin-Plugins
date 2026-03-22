@@ -391,7 +391,7 @@ public sealed class SqliteRepository : IDisposable
 
         if (endDate.HasValue)
         {
-            cmd.Parameters.AddWithValue("$endDate", endDate.Value.ToString("O"));
+            cmd.Parameters.AddWithValue("$endDate", endDate.Value.Date.AddDays(1).ToString("O"));
         }
 
         if (!string.IsNullOrEmpty(mediaType))
