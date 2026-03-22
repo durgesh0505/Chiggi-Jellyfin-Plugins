@@ -60,8 +60,14 @@ public sealed class PlaybackTracker : IHostedService, IDisposable
 
     private void OnPlaybackStart(object? sender, PlaybackProgressEventArgs args)
     {
+        _logger.LogInformation(
+            "Chiggi Stats: PlaybackStart fired — Item={Item} Session={Session}.",
+            args.Item?.Name ?? "null",
+            args.Session?.Id ?? "null");
+
         if (args.Item == null || args.Session == null)
         {
+            _logger.LogWarning("Chiggi Stats: PlaybackStart — item or session is null, skipping.");
             return;
         }
 
@@ -83,10 +89,12 @@ public sealed class PlaybackTracker : IHostedService, IDisposable
 
         if (users.Length == 0)
         {
-            _logger.LogDebug(
-                "Chiggi Stats: skipping PlaybackStart for {Item} — no user on session {SessionId}.",
+            _logger.LogWarning(
+                "Chiggi Stats: skipping PlaybackStart for {Item} — no user on session {SessionId}. Users={UserCount} SessionUserId={SessionUserId}.",
                 args.Item.Name,
-                args.Session.Id);
+                args.Session.Id,
+                args.Users.Count,
+                args.Session.UserId);
             return;
         }
 
