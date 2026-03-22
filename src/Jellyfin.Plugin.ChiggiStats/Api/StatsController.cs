@@ -4,11 +4,13 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Net.Mime;
 using System.Security.Claims;
+using System.Threading.Tasks;
 using Jellyfin.Data;
 using Jellyfin.Database.Implementations.Entities;
 using Jellyfin.Plugin.ChiggiStats.Data;
 using Jellyfin.Plugin.ChiggiStats.Models;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Controller.Net;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -29,6 +31,7 @@ public class StatsController : ControllerBase
     private readonly ActivityLogRepository _activityLog;
     private readonly InventoryReportService _inventoryReports;
     private readonly IUserManager _userManager;
+    private readonly IAuthorizationContext _authorizationContext;
     private readonly ILogger<StatsController> _logger;
 
     /// <summary>
@@ -38,18 +41,21 @@ public class StatsController : ControllerBase
     /// <param name="activityLog">The activity log repository.</param>
     /// <param name="inventoryReports">The inventory report service.</param>
     /// <param name="userManager">The Jellyfin user manager.</param>
+    /// <param name="authorizationContext">The Jellyfin authorization context.</param>
     /// <param name="logger">The logger.</param>
     public StatsController(
         SqliteRepository sqlite,
         ActivityLogRepository activityLog,
         InventoryReportService inventoryReports,
         IUserManager userManager,
+        IAuthorizationContext authorizationContext,
         ILogger<StatsController> logger)
     {
         _sqlite = sqlite;
         _activityLog = activityLog;
         _inventoryReports = inventoryReports;
         _userManager = userManager;
+        _authorizationContext = authorizationContext;
         _logger = logger;
     }
 
@@ -68,7 +74,7 @@ public class StatsController : ControllerBase
     [Authorize(Policy = "DefaultAuthorization")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public ActionResult<ActivityResponse> GetActivity(
+    public async Task<ActionResult<ActivityResponse>> GetActivity(
         [FromQuery] string? userId,
         [FromQuery] DateTime? startDate,
         [FromQuery] DateTime? endDate,
@@ -76,7 +82,7 @@ public class StatsController : ControllerBase
         [FromQuery][Range(1, 500)] int limit = 50,
         [FromQuery][Range(0, int.MaxValue)] int offset = 0)
     {
-        var effectiveUserId = ResolveUserId(userId);
+        var effectiveUserId = await ResolveUserIdAsync(userId).ConfigureAwait(false);
         if (effectiveUserId == null)
         {
             return Unauthorized();
@@ -113,12 +119,12 @@ public class StatsController : ControllerBase
     [Authorize(Policy = "DefaultAuthorization")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public ActionResult<SummaryResponse> GetSummary(
+    public async Task<ActionResult<SummaryResponse>> GetSummary(
         [FromQuery] string? userId,
         [FromQuery] DateTime? startDate,
         [FromQuery] DateTime? endDate)
     {
-        var effectiveUserId = ResolveUserId(userId);
+        var effectiveUserId = await ResolveUserIdAsync(userId).ConfigureAwait(false);
         if (effectiveUserId == null)
         {
             return Unauthorized();
@@ -176,9 +182,9 @@ public class StatsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public ActionResult<OverviewResponse> GetOverview()
+    public async Task<ActionResult<OverviewResponse>> GetOverview()
     {
-        var adminUser = GetAuthenticatedUser();
+        var adminUser = await GetAuthenticatedUserAsync().ConfigureAwait(false);
         if (adminUser == null)
         {
             return Unauthorized();
@@ -215,12 +221,12 @@ public class StatsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public ActionResult<ReportTableResponse> GetReportTable(
+    public async Task<ActionResult<ReportTableResponse>> GetReportTable(
         [FromQuery][Required] string type,
         [FromQuery][Range(1, 500)] int limit = 100,
         [FromQuery][Range(0, int.MaxValue)] int offset = 0)
     {
-        var adminUser = GetAuthenticatedUser();
+        var adminUser = await GetAuthenticatedUserAsync().ConfigureAwait(false);
         if (adminUser == null)
         {
             return Unauthorized();
@@ -256,47 +262,80 @@ public class StatsController : ControllerBase
         }
     }
 
-    // Resolves the effective user ID. Non-admins are locked to their own ID.
-    private string? ResolveUserId(string? requestedUserId)
+    // Resolves the effective user ID for a request.
+    // Uses IAuthorizationContext as primary source (more reliable than claims in Jellyfin 10.11+),
+    // with claims as fallback. Non-admins are locked to their own ID.
+    private async Task<string?> ResolveUserIdAsync(string? requestedUserId)
     {
-        // Get current authenticated user from claims
-        var claimUserId = GetAuthenticatedUserId();
+        var claimUserId = await GetAuthenticatedUserIdAsync().ConfigureAwait(false);
 
         if (string.IsNullOrEmpty(claimUserId))
         {
             return null;
         }
 
-        // Check if the authenticated user is an admin
         if (Guid.TryParse(claimUserId, out var callerGuid))
         {
-            var caller = _userManager.GetUserById(callerGuid);
-            if (caller?.HasPermission(Jellyfin.Database.Implementations.Enums.PermissionKind.IsAdministrator) == true)
+            try
             {
-                return string.IsNullOrEmpty(requestedUserId) ? claimUserId : requestedUserId;
+                var caller = _userManager.GetUserById(callerGuid);
+                if (caller?.HasPermission(Jellyfin.Database.Implementations.Enums.PermissionKind.IsAdministrator) == true)
+                {
+                    return string.IsNullOrEmpty(requestedUserId) ? claimUserId : requestedUserId;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "GetUserById failed for {UserId}; treating as non-admin.", claimUserId);
             }
         }
 
-        // Non-admins can only see their own data
         return claimUserId;
     }
 
-    private string? GetAuthenticatedUserId()
+    // Returns the authenticated Jellyfin User object, or null if not resolvable.
+    private async Task<User?> GetAuthenticatedUserAsync()
     {
-        return User.FindFirst("Jellyfin-UserId")?.Value
-            ?? User.FindFirst("uid")?.Value
-            ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-    }
-
-    private User? GetAuthenticatedUser()
-    {
-        var claimUserId = GetAuthenticatedUserId();
+        var claimUserId = await GetAuthenticatedUserIdAsync().ConfigureAwait(false);
         if (string.IsNullOrWhiteSpace(claimUserId) || !Guid.TryParse(claimUserId, out var callerGuid))
         {
             return null;
         }
 
-        return _userManager.GetUserById(callerGuid);
+        try
+        {
+            return _userManager.GetUserById(callerGuid);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "GetUserById threw for {UserId}.", claimUserId);
+            return null;
+        }
+    }
+
+    // Resolves the authenticated user ID.
+    // Primary: IAuthorizationContext (Jellyfin's own auth pipeline — works even when
+    // the auth middleware does not populate HttpContext.User claims, which can happen
+    // in Jellyfin 10.11 for plugin-registered routes).
+    // Fallback: claim names used by Jellyfin 10.8–10.10.
+    private async Task<string?> GetAuthenticatedUserIdAsync()
+    {
+        try
+        {
+            var authInfo = await _authorizationContext.GetAuthorizationInfo(Request).ConfigureAwait(false);
+            if (authInfo?.UserId != Guid.Empty)
+            {
+                return authInfo.UserId.ToString("N");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "IAuthorizationContext.GetAuthorizationInfo failed; falling back to claims.");
+        }
+
+        return User.FindFirst("Jellyfin-UserId")?.Value
+            ?? User.FindFirst("uid")?.Value
+            ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
     }
 
     private static PlaybackEventDto MapToDto(PlaybackEvent evt)

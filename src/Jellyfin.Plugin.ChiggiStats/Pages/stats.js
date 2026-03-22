@@ -126,9 +126,22 @@ const ChiggiStatsPage = {
             ? ChiggiStatsPage.fetchJson('ChiggiStats/reports/overview')
             : Promise.resolve(null);
 
-        return Promise.all([overviewRequest, summaryRequest]).then(results => {
-            const overview = results[0];
-            const summary = results[1];
+        return Promise.allSettled([overviewRequest, summaryRequest]).then(results => {
+            const overviewResult = results[0];
+            const summaryResult = results[1];
+
+            // Summary is required — if it failed, show the error state for all panels.
+            if (summaryResult.status !== 'fulfilled') {
+                console.error('Chiggi Stats summary error', summaryResult.reason);
+                ChiggiStatsPage.renderEmpty(view.querySelector('#csOverviewMetrics'), 'Failed to load overview data.');
+                ChiggiStatsPage.renderEmpty(view.querySelector('#csTrendBars'), 'Failed to load playback trend.');
+                ChiggiStatsPage.renderTableEmpty(view.querySelector('#csTopItemsBody'), 4, 'Failed to load most watched items.');
+                return;
+            }
+
+            const summary = summaryResult.value;
+            // Admin overview is optional — degrade gracefully if it fails (e.g. non-admin or 10.11 auth edge case).
+            const overview = overviewResult.status === 'fulfilled' ? overviewResult.value : null;
 
             if (overview && overview.metrics) {
                 ChiggiStatsPage.renderMetrics(view, overview.metrics);
@@ -143,11 +156,6 @@ const ChiggiStatsPage = {
 
             ChiggiStatsPage.renderTrend(view, summary.watchTimeByDay || []);
             ChiggiStatsPage.renderTopItems(view, summary.topItems || []);
-        }).catch(error => {
-            console.error('Chiggi Stats overview error', error);
-            ChiggiStatsPage.renderEmpty(view.querySelector('#csOverviewMetrics'), 'Failed to load overview data.');
-            ChiggiStatsPage.renderEmpty(view.querySelector('#csTrendBars'), 'Failed to load playback trend.');
-            ChiggiStatsPage.renderTableEmpty(view.querySelector('#csTopItemsBody'), 4, 'Failed to load most watched items.');
         }).finally(() => {
             Dashboard.hideLoadingMsg();
         });
