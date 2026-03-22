@@ -12,3 +12,23 @@ Jellyfin plugin pages are more reliable when implemented as fragment HTML plus a
 When copying a working Jellyfin `InternalItemsQuery.OrderBy` pattern into a new file, copy the enum namespace too. `SortOrder` resolves from `MediaBrowser.Model.Entities`, and leaving that import behind creates a CI-only regression that is trivial but blocks the entire plugin build.
 When a new Jellyfin plugin feature only needs deterministic admin-page ordering, do not depend on server-side sort enums unless the exact package surface is verified for that project. The safer fallback is to fetch the items, sort locally, and paginate in memory.
 When Jellyfin plugin installation reports a checksum mismatch and the expected value is literally `PLACEHOLDER_MD5`, the failure is in repository metadata, not in the built zip. Fix `manifest.json` first and refresh repository metadata in Jellyfin before debugging plugin code.
+
+## 2026-03-22
+
+Jellyfin serializes all plugin controller responses as PascalCase JSON. Do not use camelCase property names in any frontend JS that consumes plugin API responses. `summary.totalSessions` is always `undefined`; `summary.TotalSessions` is the correct key. Confirm by inspecting the raw Network response in DevTools before writing any JS data-binding code.
+
+When a stats dashboard renders all sections as empty or shows "No data available" with zero counts, the most likely root cause is a property name casing mismatch in the JS, not a backend data problem. Verify actual DB contents with a direct `sqlite3` query before spending time debugging the C# layer.
+
+`DateTime.ToString("O")` formats differently depending on `Kind`. A UTC datetime produces a `Z` suffix (e.g. `2026-03-22T00:00:00.0000000Z`) while an Unspecified datetime omits it (e.g. `2026-03-22T00:00:00.0000000`). SQLite stores and compares timestamps as strings lexicographically, so a bare date from a UI date picker parsed as midnight Unspecified will compare less than a stored UTC timestamp from the same day, silently excluding all same-day rows. Always add one calendar day to an `endDate` filter value when the intent is "include everything up to and including this day".
+
+When diagnosing a Jellyfin plugin that appears to record nothing, log at the very first line of every event handler before any null-checks. Confirming that the event itself fires is the prerequisite before investigating session resolution, user lookup, or database writes.
+
+In Jellyfin 10.11, `PlaybackProgressEventArgs.Users` can be an empty list. A `PlaybackTracker` that only reads from `args.Users` will silently drop every session. Always fall back to `args.Session.UserId` and `args.Session.UserName` when the list is empty.
+
+When the GitHub Actions publish workflow has already run for a release (e.g. `v1.0.16`), it writes real checksums into `manifest.json` and commits them to `main`. A subsequent local commit that references the same version with a placeholder checksum will conflict on `git push`. Always `git pull --rebase` before pushing if a release was published since the last sync.
+
+The GitHub Actions publish workflow is the single source of truth for `manifest.json` checksums. Never manually compute or hard-code MD5 values in `manifest.json`. Set the checksum to `00000000000000000000000000000000` as a placeholder and let the workflow replace it after the release build completes.
+
+`ISessionManager.PlaybackStart` events that record sessions shorter than the configured `MinimumPlaybackSeconds` (default 30 s) are silently dropped at `LogDebug` level. This is expected behavior, not a bug. Short test plays will not appear in the database.
+
+The session key format in `PlaybackTracker` is `"{sessionId}:{userId}"` with `userId` in N-format (no hyphens). A `Guid.ToString()` without a format argument produces the default D-format with hyphens, which will not match a key stored in N-format and will silently orphan stop/pause events.
