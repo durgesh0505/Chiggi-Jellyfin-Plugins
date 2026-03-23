@@ -7,7 +7,7 @@ const ChiggiStatsPage = {
         playbackTotal: 0,
         reportOffset: 0,
         reportTotal: 0,
-        reportType: 'movies',
+        reportType: 'users',
         isAdmin: false
     },
 
@@ -83,7 +83,7 @@ const ChiggiStatsPage = {
     },
 
     isReportTab: function (tab) {
-        return ['movies', 'series', 'seasons', 'episodes', 'music', 'boxsets', 'users', 'devices'].includes(tab);
+        return ['users', 'devices'].includes(tab);
     },
 
     selectTab: function (view, tab) {
