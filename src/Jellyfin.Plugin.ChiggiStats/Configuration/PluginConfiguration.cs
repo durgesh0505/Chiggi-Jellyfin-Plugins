@@ -8,8 +8,7 @@ namespace Jellyfin.Plugin.ChiggiStats.Configuration;
 public class PluginConfiguration : BasePluginConfiguration
 {
     /// <summary>
-    /// Gets or sets a value indicating whether SQLite tracking is enabled.
-    /// When disabled the plugin will still read from Jellyfin's activity log.
+    /// Gets or sets a value indicating whether playback tracking is enabled.
     /// </summary>
     public bool EnableSqliteTracking { get; set; } = true;
 
@@ -18,12 +17,6 @@ public class PluginConfiguration : BasePluginConfiguration
     /// 0 means retain forever.
     /// </summary>
     public int DataRetentionDays { get; set; } = 365;
-
-    /// <summary>
-    /// Gets or sets a value indicating whether to also read data from
-    /// Jellyfin's built-in activity log as a supplemental source.
-    /// </summary>
-    public bool IncludeActivityLogData { get; set; } = true;
 
     /// <summary>
     /// Gets or sets the minimum playback duration in seconds required

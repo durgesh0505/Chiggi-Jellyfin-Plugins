@@ -28,7 +28,6 @@ namespace Jellyfin.Plugin.ChiggiStats.Api;
 public class StatsController : ControllerBase
 {
     private readonly SqliteRepository _sqlite;
-    private readonly ActivityLogRepository _activityLog;
     private readonly InventoryReportService _inventoryReports;
     private readonly IUserManager _userManager;
     private readonly IAuthorizationContext _authorizationContext;
@@ -38,21 +37,18 @@ public class StatsController : ControllerBase
     /// Initializes a new instance of the <see cref="StatsController"/> class.
     /// </summary>
     /// <param name="sqlite">The SQLite repository.</param>
-    /// <param name="activityLog">The activity log repository.</param>
     /// <param name="inventoryReports">The inventory report service.</param>
     /// <param name="userManager">The Jellyfin user manager.</param>
     /// <param name="authorizationContext">The Jellyfin authorization context.</param>
     /// <param name="logger">The logger.</param>
     public StatsController(
         SqliteRepository sqlite,
-        ActivityLogRepository activityLog,
         InventoryReportService inventoryReports,
         IUserManager userManager,
         IAuthorizationContext authorizationContext,
         ILogger<StatsController> logger)
     {
         _sqlite = sqlite;
-        _activityLog = activityLog;
         _inventoryReports = inventoryReports;
         _userManager = userManager;
         _authorizationContext = authorizationContext;
@@ -88,23 +84,12 @@ public class StatsController : ControllerBase
             return Unauthorized();
         }
 
-        var config = Plugin.Instance?.Configuration;
         var (items, totalCount) = _sqlite.QueryEvents(effectiveUserId, startDate, endDate, mediaType, limit, offset);
-
-        var responseItems = items.Select(MapToDto).ToList();
-
-        // Supplement with activity log data on first page if enabled and SQLite is empty
-        if (config?.IncludeActivityLogData == true && offset == 0 && items.Count == 0)
-        {
-            var logEvents = _activityLog.GetActivityLogEvents(effectiveUserId, startDate, endDate);
-            responseItems.AddRange(logEvents.Select(MapToDto));
-            totalCount = responseItems.Count;
-        }
 
         return Ok(new ActivityResponse
         {
             TotalCount = totalCount,
-            Items = responseItems
+            Items = items.Select(MapToDto).ToList()
         });
     }
 
@@ -134,6 +119,11 @@ public class StatsController : ControllerBase
         var byDay = _sqlite.GetWatchTimeByDay(effectiveUserId, startDate, endDate);
         var topItems = _sqlite.GetTopItems(effectiveUserId, startDate, endDate, null, 10);
 
+        // Top users by watch time — only included when viewing all users (admin, no userId filter)
+        var topUsers = string.IsNullOrEmpty(effectiveUserId)
+            ? _sqlite.GetTopUsers(null, startDate, endDate, 5)
+            : new List<UserPlaybackSummary>();
+
         return Ok(new SummaryResponse
         {
             TotalSessions = stats.TotalSessions,
@@ -142,6 +132,8 @@ public class StatsController : ControllerBase
             MovieCount = stats.MovieCount,
             EpisodeCount = stats.EpisodeCount,
             AudioCount = stats.AudioCount,
+            UniqueUsers = stats.UniqueUsers,
+            CompletionRate = Math.Round(stats.CompletionRate, 1),
             WatchTimeByDay = byDay.Select(d => new DailyDto { Date = d.Date, Minutes = (int)(d.TotalTicks / TimeSpan.TicksPerMinute) }).ToList(),
             TopItems = topItems.Select(t => new TopItemDto
             {
@@ -151,6 +143,13 @@ public class StatsController : ControllerBase
                 MediaType = t.MediaType,
                 WatchCount = t.WatchCount,
                 TotalMinutes = (int)(t.TotalTicks / TimeSpan.TicksPerMinute)
+            }).ToList(),
+            TopUsers = topUsers.Select(u => new TopUserDto
+            {
+                UserId = u.UserId,
+                UserName = u.UserName,
+                SessionCount = u.SessionCount,
+                TotalHours = Math.Round(u.TotalTicks / (double)TimeSpan.TicksPerHour, 1)
             }).ToList()
         });
     }
@@ -281,7 +280,8 @@ public class StatsController : ControllerBase
                 var caller = _userManager.GetUserById(callerGuid);
                 if (caller?.HasPermission(Jellyfin.Database.Implementations.Enums.PermissionKind.IsAdministrator) == true)
                 {
-                    return string.IsNullOrEmpty(requestedUserId) ? claimUserId : requestedUserId;
+                    // Empty string = no WHERE filter = all users. Non-empty = filter to that user.
+                    return string.IsNullOrEmpty(requestedUserId) ? string.Empty : requestedUserId;
                 }
             }
             catch (Exception ex)
@@ -457,11 +457,20 @@ public class SummaryResponse
     /// <summary>Gets or sets number of audio sessions.</summary>
     public int AudioCount { get; set; }
 
+    /// <summary>Gets or sets number of distinct users with playback in the period.</summary>
+    public int UniqueUsers { get; set; }
+
+    /// <summary>Gets or sets percentage of sessions watched to completion.</summary>
+    public double CompletionRate { get; set; }
+
     /// <summary>Gets or sets watch time by day for the chart.</summary>
     public List<DailyDto> WatchTimeByDay { get; set; } = new();
 
     /// <summary>Gets or sets the top 10 most-watched items.</summary>
     public List<TopItemDto> TopItems { get; set; } = new();
+
+    /// <summary>Gets or sets the top 5 users by watch time (admin, all-users view only).</summary>
+    public List<TopUserDto> TopUsers { get; set; } = new();
 }
 
 /// <summary>Watch time for a single day.</summary>
@@ -494,6 +503,22 @@ public class TopItemDto
 
     /// <summary>Gets or sets total minutes watched.</summary>
     public int TotalMinutes { get; set; }
+}
+
+/// <summary>A top user by watch time.</summary>
+public class TopUserDto
+{
+    /// <summary>Gets or sets the Jellyfin user ID.</summary>
+    public string UserId { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the username.</summary>
+    public string UserName { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the number of playback sessions.</summary>
+    public int SessionCount { get; set; }
+
+    /// <summary>Gets or sets total hours watched.</summary>
+    public double TotalHours { get; set; }
 }
 
 /// <summary>A Jellyfin user.</summary>

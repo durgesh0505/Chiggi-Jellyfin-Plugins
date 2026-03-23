@@ -121,39 +121,16 @@ const ChiggiStatsPage = {
 
     loadOverview: function (view) {
         Dashboard.showLoadingMsg();
-        const summaryRequest = ChiggiStatsPage.fetchJson('ChiggiStats/summary', ChiggiStatsPage.getPlaybackFilters(view));
-        const overviewRequest = ChiggiStatsPage.state.isAdmin
-            ? ChiggiStatsPage.fetchJson('ChiggiStats/reports/overview')
-            : Promise.resolve(null);
-
-        return Promise.allSettled([overviewRequest, summaryRequest]).then(results => {
-            const overviewResult = results[0];
-            const summaryResult = results[1];
-
-            if (summaryResult.status !== 'fulfilled') {
-                console.error('Chiggi Stats summary error', summaryResult.reason);
-                ChiggiStatsPage.renderEmpty(view.querySelector('#csOverviewMetrics'), 'Failed to load overview data.');
-                ChiggiStatsPage.renderEmpty(view.querySelector('#csTrendBars'), 'Failed to load playback trend.');
-                ChiggiStatsPage.renderTableEmpty(view.querySelector('#csTopItemsBody'), 4, 'Failed to load most watched items.');
-                return;
-            }
-
-            const summary = summaryResult.value;
-            const overview = overviewResult.status === 'fulfilled' ? overviewResult.value : null;
-
-            if (overview && overview.Metrics) {
-                ChiggiStatsPage.renderMetrics(view, overview.Metrics);
-            } else {
-                ChiggiStatsPage.renderMetrics(view, [
-                    { Key: 'hours',    Label: 'Hours Watched', Value: String(summary.TotalWatchTimeHours) },
-                    { Key: 'sessions', Label: 'Sessions',      Value: String(summary.TotalSessions) },
-                    { Key: 'movies',   Label: 'Movies',        Value: String(summary.MovieCount) },
-                    { Key: 'episodes', Label: 'Episodes',      Value: String(summary.EpisodeCount) }
-                ]);
-            }
-
+        return ChiggiStatsPage.fetchJson('ChiggiStats/summary', ChiggiStatsPage.getPlaybackFilters(view)).then(summary => {
+            ChiggiStatsPage.renderMetrics(view, summary);
             ChiggiStatsPage.renderTrend(view, summary.WatchTimeByDay || []);
+            ChiggiStatsPage.renderTopUsers(view, summary.TopUsers || []);
             ChiggiStatsPage.renderTopItems(view, summary.TopItems || []);
+        }).catch(function (error) {
+            console.error('Chiggi Stats overview error', error);
+            ChiggiStatsPage.renderEmpty(view.querySelector('#csOverviewMetrics'), 'Failed to load overview data.');
+            ChiggiStatsPage.renderEmpty(view.querySelector('#csTrendBars'), 'Failed to load playback trend.');
+            ChiggiStatsPage.renderTableEmpty(view.querySelector('#csTopItemsBody'), 4, 'Failed to load most watched items.');
         }).finally(() => {
             Dashboard.hideLoadingMsg();
         });
@@ -171,7 +148,7 @@ const ChiggiStatsPage = {
             ChiggiStatsPage.updatePlaybackPagination(view);
         }).catch(error => {
             console.error('Chiggi Stats playback error', error);
-            ChiggiStatsPage.renderTableEmpty(view.querySelector('#csActivityBody'), 6, 'Failed to load playback activity.');
+            ChiggiStatsPage.renderTableEmpty(view.querySelector('#csActivityBody'), 7, 'Failed to load playback activity.');
         }).finally(() => {
             Dashboard.hideLoadingMsg();
         });
@@ -204,22 +181,61 @@ const ChiggiStatsPage = {
         });
     },
 
-    renderMetrics: function (view, metrics) {
+    renderMetrics: function (view, summary) {
         const container = view.querySelector('#csOverviewMetrics');
         container.innerHTML = '';
 
-        if (!metrics.length) {
-            ChiggiStatsPage.renderEmpty(container, 'No overview metrics available.');
+        const total = summary.TotalSessions || 0;
+        const hours = summary.TotalWatchTimeHours || 0;
+        const avgMinutes = total > 0 ? Math.round((hours * 60) / total) : 0;
+        const movies = summary.MovieCount || 0;
+        const episodes = summary.EpisodeCount || 0;
+        const music = summary.AudioCount || 0;
+        const mediaTotal = movies + episodes + music;
+
+        const pct = function (n) {
+            return mediaTotal > 0 ? ' (' + Math.round(n * 100 / mediaTotal) + '%)' : '';
+        };
+
+        const cards = [
+            { label: 'Hours Watched',   value: String(hours) },
+            { label: 'Sessions',        value: String(total) },
+            { label: 'Unique Users',    value: String(summary.UniqueUsers || 0) },
+            { label: 'Avg Session',     value: ChiggiStatsPage.formatMinutes(avgMinutes) },
+            { label: 'Completion Rate', value: (summary.CompletionRate || 0) + '%' },
+            { label: 'Movies',          value: String(movies) + pct(movies) },
+            { label: 'Episodes',        value: String(episodes) + pct(episodes) },
+            { label: 'Music',           value: String(music) + pct(music) }
+        ];
+
+        cards.forEach(function (card) {
+            const div = document.createElement('div');
+            div.className = 'cs-card';
+            div.innerHTML =
+                '<div class="cs-card-value">' + ChiggiStatsPage.escape(card.value) + '</div>' +
+                '<span class="cs-card-label">' + ChiggiStatsPage.escape(card.label) + '</span>';
+            container.appendChild(div);
+        });
+    },
+
+    renderTopUsers: function (view, users) {
+        const section = view.querySelector('#csTopUsersSection');
+        const body = view.querySelector('#csTopUsersBody');
+
+        if (!users.length) {
+            section.classList.add('cs-hidden');
             return;
         }
 
-        metrics.forEach(metric => {
-            const card = document.createElement('div');
-            card.className = 'cs-card';
-            card.innerHTML =
-                '<div class="cs-card-value">' + ChiggiStatsPage.escape(metric.Value) + '</div>' +
-                '<span class="cs-card-label">' + ChiggiStatsPage.escape(metric.Label) + '</span>';
-            container.appendChild(card);
+        section.classList.remove('cs-hidden');
+        body.innerHTML = '';
+        users.forEach(function (user) {
+            const row = document.createElement('tr');
+            row.innerHTML =
+                '<td>' + ChiggiStatsPage.escape(user.UserName) + '</td>' +
+                '<td>' + ChiggiStatsPage.escape(String(user.SessionCount)) + '</td>' +
+                '<td>' + ChiggiStatsPage.escape(String(user.TotalHours) + 'h') + '</td>';
+            body.appendChild(row);
         });
     },
 
@@ -279,7 +295,7 @@ const ChiggiStatsPage = {
     renderPlayback: function (view, items) {
         const body = view.querySelector('#csActivityBody');
         if (!items.length) {
-            ChiggiStatsPage.renderTableEmpty(body, 6, 'No playback history found for the selected filters.');
+            ChiggiStatsPage.renderTableEmpty(body, 7, 'No playback history found for the selected filters.');
             return;
         }
 
@@ -295,6 +311,7 @@ const ChiggiStatsPage = {
                 '<td>' + ChiggiStatsPage.escape(title) + '</td>' +
                 '<td>' + ChiggiStatsPage.escape(item.MediaType) + '</td>' +
                 '<td>' + ChiggiStatsPage.escape(ChiggiStatsPage.formatMinutes(Math.round(item.DurationMinutes))) + '</td>' +
+                '<td>' + (item.Completed ? '✓' : '-') + '</td>' +
                 '<td>' + ChiggiStatsPage.escape(ChiggiStatsPage.formatDate(item.StartTime)) + '</td>' +
                 '<td>' + ChiggiStatsPage.escape(item.ClientName || '-') + '</td>';
             body.appendChild(row);

@@ -149,11 +149,13 @@ public sealed class SqliteRepository : IDisposable
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = $@"
             SELECT
-                COUNT(*)                                            AS TotalSessions,
-                COALESCE(SUM(PlaybackDurationTicks), 0)            AS TotalTicks,
+                COUNT(*)                                                            AS TotalSessions,
+                COALESCE(SUM(PlaybackDurationTicks), 0)                            AS TotalTicks,
                 COALESCE(SUM(CASE WHEN MediaType='Movie'   THEN 1 ELSE 0 END), 0) AS MovieCount,
                 COALESCE(SUM(CASE WHEN MediaType='Episode' THEN 1 ELSE 0 END), 0) AS EpisodeCount,
-                COALESCE(SUM(CASE WHEN MediaType='Audio'   THEN 1 ELSE 0 END), 0) AS AudioCount
+                COALESCE(SUM(CASE WHEN MediaType='Audio'   THEN 1 ELSE 0 END), 0) AS AudioCount,
+                COUNT(DISTINCT UserId)                                             AS UniqueUsers,
+                CAST(SUM(Completed) AS REAL) * 100.0 / NULLIF(COUNT(*), 0)       AS CompletionRate
             FROM PlaybackEvents{where}";
         AddFilterParams(cmd, userId, startDate, endDate, null);
 
@@ -166,7 +168,9 @@ public sealed class SqliteRepository : IDisposable
                 TotalPlaybackTicks = reader.GetInt64(1),
                 MovieCount = reader.GetInt32(2),
                 EpisodeCount = reader.GetInt32(3),
-                AudioCount = reader.GetInt32(4)
+                AudioCount = reader.GetInt32(4),
+                UniqueUsers = reader.GetInt32(5),
+                CompletionRate = reader.IsDBNull(6) ? 0.0 : reader.GetDouble(6)
             };
         }
 
@@ -196,6 +200,40 @@ public sealed class SqliteRepository : IDisposable
             {
                 Date = reader.GetString(0),
                 TotalTicks = reader.GetInt64(1)
+            });
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Returns the top N users by total watch time for the given filters.
+    /// </summary>
+    public IReadOnlyList<UserPlaybackSummary> GetTopUsers(string? userId, DateTime? startDate, DateTime? endDate, int topN)
+    {
+        var where = BuildWhereClause(userId, startDate, endDate, null);
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = $@"
+            SELECT UserId, UserName,
+                   COUNT(*) AS SessionCount,
+                   COALESCE(SUM(PlaybackDurationTicks), 0) AS TotalTicks
+            FROM PlaybackEvents{where}
+            GROUP BY UserId, UserName
+            ORDER BY TotalTicks DESC
+            LIMIT $topN";
+        AddFilterParams(cmd, userId, startDate, endDate, null);
+        cmd.Parameters.AddWithValue("$topN", topN);
+
+        var result = new List<UserPlaybackSummary>();
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            result.Add(new UserPlaybackSummary
+            {
+                UserId = reader.GetString(0),
+                UserName = reader.GetString(1),
+                SessionCount = reader.GetInt32(2),
+                TotalTicks = reader.GetInt64(3)
             });
         }
 
@@ -449,6 +487,12 @@ public class SummaryStats
 
     /// <summary>Gets or sets the number of audio sessions.</summary>
     public int AudioCount { get; set; }
+
+    /// <summary>Gets or sets the number of distinct users with playback in the period.</summary>
+    public int UniqueUsers { get; set; }
+
+    /// <summary>Gets or sets the percentage of sessions watched to completion.</summary>
+    public double CompletionRate { get; set; }
 }
 
 /// <summary>Watch time aggregated by calendar day.</summary>
