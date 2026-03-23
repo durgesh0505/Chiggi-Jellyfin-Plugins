@@ -12,8 +12,8 @@
         "changelog": "Remove inventory report tabs (Movies, Series, Seasons, Episodes, Music, Box Sets) — dashboard now focuses on usage: Overview, Playback, Users, and Devices only.",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/durgesh0505/Chiggi-Jellyfin-Plugins/releases/download/v1.0.18/Jellyfin.Plugin.ChiggiStats.zip",
-        "checksum": "00000000000000000000000000000000",
-        "timestamp": "2026-03-22T00:00:00Z"
+        "checksum": "e669f8514521eef98ad3c296a8dc7676",
+        "timestamp": "2026-03-23T01:58:38Z"
       },
       {
         "version": "1.0.13.0",
@@ -141,9 +141,9 @@
         "version": "27.1.5.0",
         "changelog": "Fix: handle HTTP 420 Account Limit Exceeded from Trakt gracefully — free accounts are capped at 100 collection items (enforced Jan 2025). Previously this threw an exception and aborted the entire sync. Now logs a clear warning and continues. Disable collection sync in Trakt settings or upgrade to Trakt VIP to resolve.",
         "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/durgesh0505/Chiggi-Jellyfin-Plugins/releases/download/v1.0.17/Jellyfin.Plugin.Trakt.zip",
-        "checksum": "22ccd595937e089262784f9bc1214708",
-        "timestamp": "2026-03-22T15:04:34Z"
+        "sourceUrl": "https://github.com/durgesh0505/Chiggi-Jellyfin-Plugins/releases/download/v1.0.18/Jellyfin.Plugin.Trakt.zip",
+        "checksum": "d6a22799e7819873270477524af2b337",
+        "timestamp": "2026-03-23T01:58:38Z"
       },
       {
         "version": "27.1.4.0",
