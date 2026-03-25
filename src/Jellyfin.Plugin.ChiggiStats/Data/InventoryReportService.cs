@@ -215,6 +215,7 @@ public sealed class InventoryReportService
             {
                 new() { Key = "device", Label = "Device" },
                 new() { Key = "client", Label = "Client" },
+                new() { Key = "usernames", Label = "Who Used It" },
                 new() { Key = "users", Label = "Users" },
                 new() { Key = "sessions", Label = "Sessions" },
                 new() { Key = "hours", Label = "Hours Watched" },
@@ -226,6 +227,7 @@ public sealed class InventoryReportService
                 {
                     ["device"] = summary.DeviceName,
                     ["client"] = summary.ClientName,
+                    ["usernames"] = string.IsNullOrEmpty(summary.UserNames) ? null : summary.UserNames.Replace(",", " · "),
                     ["users"] = summary.DistinctUsers.ToString(CultureInfo.InvariantCulture),
                     ["sessions"] = summary.SessionCount.ToString(CultureInfo.InvariantCulture),
                     ["hours"] = FormatHours(summary.TotalTicks),

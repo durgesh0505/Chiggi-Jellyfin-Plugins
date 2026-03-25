@@ -104,7 +104,7 @@ public sealed class SqliteRepository : IDisposable
     /// <param name="userId">Filter to a specific user ID, or null for all users.</param>
     /// <param name="startDate">Include events on or after this date (UTC).</param>
     /// <param name="endDate">Include events on or before this date (UTC).</param>
-    /// <param name="mediaType">Filter by media type (Movie, Episode, Audio), or null for all.</param>
+    /// <param name="mediaTypes">Filter by one or more media types (Movie, Episode, Audio), or null for all.</param>
     /// <param name="limit">Maximum number of rows to return.</param>
     /// <param name="offset">Number of rows to skip (for pagination).</param>
     /// <returns>Matching events and total count before pagination.</returns>
@@ -112,20 +112,20 @@ public sealed class SqliteRepository : IDisposable
         string? userId,
         DateTime? startDate,
         DateTime? endDate,
-        string? mediaType,
+        IReadOnlyList<string>? mediaTypes,
         int limit,
         int offset)
     {
-        var where = BuildWhereClause(userId, startDate, endDate, mediaType);
+        var where = BuildWhereClause(userId, startDate, endDate, mediaTypes);
 
         using var countCmd = _connection.CreateCommand();
         countCmd.CommandText = $"SELECT COUNT(*) FROM PlaybackEvents{where}";
-        AddFilterParams(countCmd, userId, startDate, endDate, mediaType);
+        AddFilterParams(countCmd, userId, startDate, endDate, mediaTypes);
         var totalCount = Convert.ToInt32(countCmd.ExecuteScalar());
 
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = $"SELECT * FROM PlaybackEvents{where} ORDER BY StartTime DESC LIMIT $limit OFFSET $offset";
-        AddFilterParams(cmd, userId, startDate, endDate, mediaType);
+        AddFilterParams(cmd, userId, startDate, endDate, mediaTypes);
         cmd.Parameters.AddWithValue("$limit", limit);
         cmd.Parameters.AddWithValue("$offset", offset);
 
@@ -142,9 +142,9 @@ public sealed class SqliteRepository : IDisposable
     /// <summary>
     /// Returns aggregate statistics for the given filters.
     /// </summary>
-    public SummaryStats GetSummary(string? userId, DateTime? startDate, DateTime? endDate)
+    public SummaryStats GetSummary(string? userId, DateTime? startDate, DateTime? endDate, IReadOnlyList<string>? mediaTypes = null)
     {
-        var where = BuildWhereClause(userId, startDate, endDate, null);
+        var where = BuildWhereClause(userId, startDate, endDate, mediaTypes);
 
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = $@"
@@ -157,7 +157,7 @@ public sealed class SqliteRepository : IDisposable
                 COUNT(DISTINCT UserId)                                             AS UniqueUsers,
                 CAST(SUM(Completed) AS REAL) * 100.0 / NULLIF(COUNT(*), 0)       AS CompletionRate
             FROM PlaybackEvents{where}";
-        AddFilterParams(cmd, userId, startDate, endDate, null);
+        AddFilterParams(cmd, userId, startDate, endDate, mediaTypes);
 
         using var reader = cmd.ExecuteReader();
         if (reader.Read())
@@ -180,9 +180,9 @@ public sealed class SqliteRepository : IDisposable
     /// <summary>
     /// Returns watch time grouped by day (UTC date string → total ticks).
     /// </summary>
-    public IReadOnlyList<DailyWatchTime> GetWatchTimeByDay(string? userId, DateTime? startDate, DateTime? endDate)
+    public IReadOnlyList<DailyWatchTime> GetWatchTimeByDay(string? userId, DateTime? startDate, DateTime? endDate, IReadOnlyList<string>? mediaTypes = null)
     {
-        var where = BuildWhereClause(userId, startDate, endDate, null);
+        var where = BuildWhereClause(userId, startDate, endDate, mediaTypes);
 
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = $@"
@@ -190,7 +190,7 @@ public sealed class SqliteRepository : IDisposable
             FROM PlaybackEvents{where}
             GROUP BY Day
             ORDER BY Day ASC";
-        AddFilterParams(cmd, userId, startDate, endDate, null);
+        AddFilterParams(cmd, userId, startDate, endDate, mediaTypes);
 
         var result = new List<DailyWatchTime>();
         using var reader = cmd.ExecuteReader();
@@ -243,9 +243,9 @@ public sealed class SqliteRepository : IDisposable
     /// <summary>
     /// Returns the top N most-watched items grouped by ItemId/ItemName.
     /// </summary>
-    public IReadOnlyList<TopItem> GetTopItems(string? userId, DateTime? startDate, DateTime? endDate, string? mediaType, int topN)
+    public IReadOnlyList<TopItem> GetTopItems(string? userId, DateTime? startDate, DateTime? endDate, IReadOnlyList<string>? mediaTypes, int topN)
     {
-        var where = BuildWhereClause(userId, startDate, endDate, mediaType);
+        var where = BuildWhereClause(userId, startDate, endDate, mediaTypes);
 
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = $@"
@@ -256,7 +256,7 @@ public sealed class SqliteRepository : IDisposable
             GROUP BY ItemId
             ORDER BY WatchCount DESC
             LIMIT $topN";
-        AddFilterParams(cmd, userId, startDate, endDate, mediaType);
+        AddFilterParams(cmd, userId, startDate, endDate, mediaTypes);
         cmd.Parameters.AddWithValue("$topN", topN);
 
         var result = new List<TopItem>();
@@ -328,7 +328,8 @@ public sealed class SqliteRepository : IDisposable
                    COUNT(DISTINCT UserId) AS DistinctUsers,
                    COUNT(*) AS SessionCount,
                    COALESCE(SUM(PlaybackDurationTicks), 0) AS TotalTicks,
-                   MAX(StartTime) AS LastSeen
+                   MAX(StartTime) AS LastSeen,
+                   GROUP_CONCAT(DISTINCT UserName) AS UserNames
             FROM PlaybackEvents
             GROUP BY COALESCE(DeviceName, 'Unknown'), COALESCE(ClientName, 'Unknown')
             ORDER BY SessionCount DESC, DeviceName ASC
@@ -350,6 +351,7 @@ public sealed class SqliteRepository : IDisposable
                 LastSeen = reader.IsDBNull(5)
                     ? null
                     : DateTime.Parse(reader.GetString(5), null, System.Globalization.DateTimeStyles.RoundtripKind),
+                UserNames = reader.IsDBNull(6) ? string.Empty : reader.GetString(6),
             });
         }
 
@@ -389,7 +391,7 @@ public sealed class SqliteRepository : IDisposable
         }
     }
 
-    private static string BuildWhereClause(string? userId, DateTime? startDate, DateTime? endDate, string? mediaType)
+    private static string BuildWhereClause(string? userId, DateTime? startDate, DateTime? endDate, IReadOnlyList<string>? mediaTypes)
     {
         var conditions = new List<string>();
         if (!string.IsNullOrEmpty(userId))
@@ -407,15 +409,21 @@ public sealed class SqliteRepository : IDisposable
             conditions.Add("StartTime <= $endDate");
         }
 
-        if (!string.IsNullOrEmpty(mediaType))
+        if (mediaTypes != null && mediaTypes.Count > 0)
         {
-            conditions.Add("MediaType = $mediaType");
+            var paramList = new List<string>(mediaTypes.Count);
+            for (int i = 0; i < mediaTypes.Count; i++)
+            {
+                paramList.Add("$mt" + i.ToString(CultureInfo.InvariantCulture));
+            }
+
+            conditions.Add("MediaType IN (" + string.Join(", ", paramList) + ")");
         }
 
         return conditions.Count > 0 ? " WHERE " + string.Join(" AND ", conditions) : string.Empty;
     }
 
-    private static void AddFilterParams(SqliteCommand cmd, string? userId, DateTime? startDate, DateTime? endDate, string? mediaType)
+    private static void AddFilterParams(SqliteCommand cmd, string? userId, DateTime? startDate, DateTime? endDate, IReadOnlyList<string>? mediaTypes)
     {
         if (!string.IsNullOrEmpty(userId))
         {
@@ -432,9 +440,12 @@ public sealed class SqliteRepository : IDisposable
             cmd.Parameters.AddWithValue("$endDate", endDate.Value.Date.AddDays(1).ToString("O"));
         }
 
-        if (!string.IsNullOrEmpty(mediaType))
+        if (mediaTypes != null && mediaTypes.Count > 0)
         {
-            cmd.Parameters.AddWithValue("$mediaType", mediaType);
+            for (int i = 0; i < mediaTypes.Count; i++)
+            {
+                cmd.Parameters.AddWithValue("$mt" + i.ToString(CultureInfo.InvariantCulture), mediaTypes[i]);
+            }
         }
     }
 
@@ -566,4 +577,7 @@ public class DevicePlaybackSummary
 
     /// <summary>Gets or sets the last seen playback timestamp.</summary>
     public DateTime? LastSeen { get; set; }
+
+    /// <summary>Gets or sets a comma-separated list of user names who used this device.</summary>
+    public string UserNames { get; set; } = string.Empty;
 }

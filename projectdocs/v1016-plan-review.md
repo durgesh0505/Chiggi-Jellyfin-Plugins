@@ -1,8 +1,8 @@
 # v1.0.16.0 Plan Review — Codex Findings and Decisions
 
 **Date:** 2026-03-25
-**Status:** Decisions locked. Ready to implement.
-**Reviewed by:** Codex
+**Status:** Decisions locked. Not yet implemented. Codebase is still on v1.0.15.0.
+**Reviewed by:** Codex (two rounds)
 **Resolved by:** Claude Code + User
 
 ---
@@ -110,7 +110,7 @@ Assign `ChiggiStatsPage.debouncedReload` once during page init. All filter `chan
 
 This syntax works in all SQLite 3.x versions. The C# side does not need to post-process the string — a comma-separated list of user names is readable as-is in the table cell. Jellyfin usernames do not contain commas in practice (the UI rejects them), so the output is unambiguous.
 
-If a display separator other than comma is ever needed in the future, it can be applied in `InventoryReportService.cs` with a simple `.Replace(",", " · ")` on `summary.UserNames` before writing it into the row cell — no SQL change required at that point.
+The display separator is handled in C#: in `InventoryReportService.cs`, apply `.Replace(",", " · ")` on `summary.UserNames` before writing it into the row cell. This makes the separator a C# concern, not a SQL concern, and works regardless of SQLite version. It is also safe because Jellyfin validates that usernames contain only alphanumeric characters and a small set of allowed symbols — commas are not permitted by the Jellyfin UI, so the split on comma is unambiguous in practice. The `.Replace` also eliminates any concern about future edge cases without requiring a SQL change.
 
 ---
 

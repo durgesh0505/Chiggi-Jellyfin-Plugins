@@ -62,7 +62,7 @@ public class StatsController : ControllerBase
     /// <param name="userId">Filter by user ID (admin only for other users).</param>
     /// <param name="startDate">Include events on or after this UTC date.</param>
     /// <param name="endDate">Include events on or before this UTC date.</param>
-    /// <param name="mediaType">Filter by media type: Movie, Episode, or Audio.</param>
+    /// <param name="mediaTypes">Filter by one or more media types: Movie, Episode, Audio.</param>
     /// <param name="limit">Page size (default 50, max 500).</param>
     /// <param name="offset">Number of records to skip (default 0).</param>
     /// <returns>Paginated activity list.</returns>
@@ -74,7 +74,7 @@ public class StatsController : ControllerBase
         [FromQuery] string? userId,
         [FromQuery] DateTime? startDate,
         [FromQuery] DateTime? endDate,
-        [FromQuery] string? mediaType,
+        [FromQuery] List<string>? mediaTypes,
         [FromQuery][Range(1, 500)] int limit = 50,
         [FromQuery][Range(0, int.MaxValue)] int offset = 0)
     {
@@ -84,7 +84,7 @@ public class StatsController : ControllerBase
             return Unauthorized();
         }
 
-        var (items, totalCount) = _sqlite.QueryEvents(effectiveUserId, startDate, endDate, mediaType, limit, offset);
+        var (items, totalCount) = _sqlite.QueryEvents(effectiveUserId, startDate, endDate, mediaTypes, limit, offset);
 
         return Ok(new ActivityResponse
         {
@@ -99,6 +99,7 @@ public class StatsController : ControllerBase
     /// <param name="userId">Filter by user ID (admin only for other users).</param>
     /// <param name="startDate">Start of date range (UTC).</param>
     /// <param name="endDate">End of date range (UTC).</param>
+    /// <param name="mediaTypes">Filter by one or more media types: Movie, Episode, Audio.</param>
     /// <returns>Summary statistics.</returns>
     [HttpGet("summary")]
     [Authorize]
@@ -107,7 +108,8 @@ public class StatsController : ControllerBase
     public async Task<ActionResult<SummaryResponse>> GetSummary(
         [FromQuery] string? userId,
         [FromQuery] DateTime? startDate,
-        [FromQuery] DateTime? endDate)
+        [FromQuery] DateTime? endDate,
+        [FromQuery] List<string>? mediaTypes)
     {
         var effectiveUserId = await ResolveUserIdAsync(userId).ConfigureAwait(false);
         if (effectiveUserId == null)
@@ -115,9 +117,9 @@ public class StatsController : ControllerBase
             return Unauthorized();
         }
 
-        var stats = _sqlite.GetSummary(effectiveUserId, startDate, endDate);
-        var byDay = _sqlite.GetWatchTimeByDay(effectiveUserId, startDate, endDate);
-        var topItems = _sqlite.GetTopItems(effectiveUserId, startDate, endDate, null, 10);
+        var stats = _sqlite.GetSummary(effectiveUserId, startDate, endDate, mediaTypes);
+        var byDay = _sqlite.GetWatchTimeByDay(effectiveUserId, startDate, endDate, mediaTypes);
+        var topItems = _sqlite.GetTopItems(effectiveUserId, startDate, endDate, mediaTypes, 10);
 
         // Top users by watch time — only included when viewing all users (admin, no userId filter)
         var topUsers = string.IsNullOrEmpty(effectiveUserId)

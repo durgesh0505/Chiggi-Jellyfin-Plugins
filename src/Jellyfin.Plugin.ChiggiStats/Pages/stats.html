@@ -162,6 +162,52 @@
             text-align: center;
             opacity: 0.6;
         }
+
+        .chiggiStatsPage .cs-tableWrap {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .chiggiStatsPage .cs-checkboxGroup {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding-top: 6px;
+        }
+
+        .chiggiStatsPage .cs-checkboxLabel {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 640px) {
+            .chiggiStatsPage .cs-tabBar {
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                padding-bottom: 4px;
+            }
+
+            .chiggiStatsPage .cs-tabButton {
+                flex-shrink: 0;
+            }
+
+            .chiggiStatsPage .cs-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .chiggiStatsPage .cs-filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .chiggiStatsPage .cs-filterField {
+                min-width: 0;
+            }
+        }
     </style>
     <div data-role="content">
         <div class="content-primary">
@@ -183,13 +229,18 @@
                         <select is="emby-select" id="csUserSelect"></select>
                     </div>
                     <div class="cs-filterField">
-                        <label class="inputLabel" for="csMediaTypeSelect">Media Type</label>
-                        <select is="emby-select" id="csMediaTypeSelect">
-                            <option value="">All</option>
-                            <option value="Movie">Movies</option>
-                            <option value="Episode">Episodes</option>
-                            <option value="Audio">Music</option>
-                        </select>
+                        <span class="inputLabel">Media Type</span>
+                        <div class="cs-checkboxGroup">
+                            <label class="cs-checkboxLabel">
+                                <input type="checkbox" id="csMtMovies" value="Movie" checked /> Movies
+                            </label>
+                            <label class="cs-checkboxLabel">
+                                <input type="checkbox" id="csMtEpisodes" value="Episode" checked /> Episodes
+                            </label>
+                            <label class="cs-checkboxLabel">
+                                <input type="checkbox" id="csMtAudio" value="Audio" checked /> Music
+                            </label>
+                        </div>
                     </div>
                     <div class="cs-filterField">
                         <label class="inputLabel" for="csStartDate">From</label>
@@ -198,9 +249,6 @@
                     <div class="cs-filterField">
                         <label class="inputLabel" for="csEndDate">To</label>
                         <input is="emby-input" id="csEndDate" type="date" />
-                    </div>
-                    <div>
-                        <button type="button" id="csApplyFilters" class="cs-btn cs-btn-primary">Apply</button>
                     </div>
                     <div>
                         <button type="button" id="csResetFilters" class="cs-btn">Reset</button>
@@ -218,51 +266,57 @@
 
                 <div id="csTopUsersSection" class="cs-section cs-hidden">
                     <h2 class="cs-sectionTitle">Top Users</h2>
-                    <table class="detailTable">
-                        <thead>
-                            <tr>
-                                <th>User</th>
-                                <th>Sessions</th>
-                                <th>Hours Watched</th>
-                            </tr>
-                        </thead>
-                        <tbody id="csTopUsersBody"></tbody>
-                    </table>
+                    <div class="cs-tableWrap">
+                        <table class="detailTable">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Sessions</th>
+                                    <th>Hours Watched</th>
+                                </tr>
+                            </thead>
+                            <tbody id="csTopUsersBody"></tbody>
+                        </table>
+                    </div>
                 </div>
 
                 <div class="cs-section">
                     <h2 class="cs-sectionTitle">Most Watched</h2>
-                    <table class="detailTable">
-                        <thead>
-                            <tr>
-                                <th>Title</th>
-                                <th>Type</th>
-                                <th>Plays</th>
-                                <th>Total Time</th>
-                            </tr>
-                        </thead>
-                        <tbody id="csTopItemsBody"></tbody>
-                    </table>
+                    <div class="cs-tableWrap">
+                        <table class="detailTable">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Type</th>
+                                    <th>Plays</th>
+                                    <th>Total Time</th>
+                                </tr>
+                            </thead>
+                            <tbody id="csTopItemsBody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
             <div id="csPlaybackSection" class="cs-hidden">
                 <div class="cs-section">
                     <h2 class="cs-sectionTitle">Recent Activity</h2>
-                    <table class="detailTable">
-                        <thead>
-                            <tr>
-                                <th>User</th>
-                                <th>Title</th>
-                                <th>Type</th>
-                                <th>Duration</th>
-                                <th>Done</th>
-                                <th>Date</th>
-                                <th>Client</th>
-                            </tr>
-                        </thead>
-                        <tbody id="csActivityBody"></tbody>
-                    </table>
+                    <div class="cs-tableWrap">
+                        <table class="detailTable">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Title</th>
+                                    <th>Type</th>
+                                    <th>Duration</th>
+                                    <th>Done</th>
+                                    <th>Date</th>
+                                    <th>Client</th>
+                                </tr>
+                            </thead>
+                            <tbody id="csActivityBody"></tbody>
+                        </table>
+                    </div>
                     <div class="cs-pagination">
                         <button type="button" id="csPlaybackPrev" class="cs-btn">Prev</button>
                         <span id="csPlaybackPageInfo" class="cs-pill"></span>
@@ -275,10 +329,12 @@
                 <div class="cs-section">
                     <h2 id="csReportHeading" class="cs-sectionTitle">Report</h2>
                     <div id="csReportSummary" class="fieldDescription"></div>
-                    <table class="detailTable">
-                        <thead id="csReportHead"></thead>
-                        <tbody id="csReportBody"></tbody>
-                    </table>
+                    <div class="cs-tableWrap">
+                        <table class="detailTable">
+                            <thead id="csReportHead"></thead>
+                            <tbody id="csReportBody"></tbody>
+                        </table>
+                    </div>
                     <div class="cs-pagination">
                         <button type="button" id="csReportPrev" class="cs-btn">Prev</button>
                         <span id="csReportPageInfo" class="cs-pill"></span>

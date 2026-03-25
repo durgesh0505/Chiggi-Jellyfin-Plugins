@@ -114,3 +114,25 @@ Change 3 — Mobile-friendly view. CSS-only changes in stats.html. All tables wr
 Change 4 — Devices tab show user names alongside count. SqliteRepository.GetDevicePlaybackSummaries SQL adds GROUP_CONCAT(DISTINCT UserName, ' | ') AS UserNames. DevicePlaybackSummary model gets a UserNames string property. InventoryReportService.BuildDevicesTable adds a new usernames column with Label "Who Used It" after the existing users count column. Row cells get ["usernames"] = summary.UserNames. Both columns are kept — "Users" shows the count, "Who Used It" shows the pipe-separated names. No frontend changes needed since the generic report table renders whatever columns are defined. Files: SqliteRepository.cs, InventoryReportService.cs.
 
 Implementation order: Change 4 first (pure C# data layer), then Change 2 C# backend, then Change 2 frontend, then Change 1, then Change 3. All in one commit. Bump to v1.0.16.0. Add manifest entry pointing to v1.0.20 release. Codex or Claude Code can begin implementation directly from this entry without re-reading the planning conversation.
+
+Claude Code [2026-03-25 UTC] Implemented v1.0.16.0. All five planned changes are written and ready to commit.
+
+Change summary:
+
+SqliteRepository.cs: Changed BuildWhereClause and AddFilterParams to accept IReadOnlyList<string>? mediaTypes instead of string? mediaType. The IN clause uses dynamic params $mt0, $mt1 etc. QueryEvents and GetTopItems signatures updated. GetSummary and GetWatchTimeByDay gained mediaTypes as optional param with default null (so the existing 3-arg call in InventoryReportService.GetOverviewMetrics compiles without change). GetDevicePlaybackSummaries SQL adds GROUP_CONCAT(DISTINCT UserName) AS UserNames at column index 6. DevicePlaybackSummary class gains UserNames string property.
+
+InventoryReportService.cs: BuildDevicesTable now has a "usernames" column (label "Who Used It") inserted after "client". Row cells get summary.UserNames.Replace(",", " · ") — comma-to-middot transform applied in C#, not SQL, safe regardless of SQLite version.
+
+StatsController.cs: GetActivity gains [FromQuery] List<string>? mediaTypes, passed to QueryEvents. GetSummary gains [FromQuery] List<string>? mediaTypes, passed to all three sub-queries: GetSummary, GetWatchTimeByDay, GetTopItems. GetTopUsers is not filtered by mediaTypes (top users by total watch time, not type-specific).
+
+stats.html: Media type <select> replaced with three checkboxes (#csMtMovies, #csMtEpisodes, #csMtAudio) all checked by default. Apply button removed. All four tables wrapped in <div class="cs-tableWrap"> (overflow-x: auto). Added CSS for .cs-tableWrap, .cs-checkboxGroup, .cs-checkboxLabel, and @media (max-width: 640px) rules: tabs scroll horizontally (flex-wrap: nowrap, overflow-x: auto), metric grid becomes 2 columns, filters stack vertically.
+
+stats.js: Added debounce(fn, delay), triggerReload(view), syncCheckboxDisabled(view). getPlaybackFilters rewritten to read checkbox values into mediaTypes array; sends undefined (no param) when all 3 checked, array when 1 or 2 checked. buildUrl rewritten to handle array params (emits key=v0&key=v1). Export function: Apply listener removed. Debounced change listeners added to user select, date inputs, and all three checkboxes. Checkbox change also calls syncCheckboxDisabled (disables the last checked box so zero-selection is impossible). Reset re-checks all boxes, sets disabled false, calls triggerReload directly (no debounce). viewshow calls syncCheckboxDisabled after setDefaultDates.
+
+csproj: Version bumped to 1.0.16.0 (three places).
+
+manifest.json: v1.0.16.0 entry added at top of versions array, pointing to v1.0.20 release, checksum placeholder 00000000000000000000000000000000.
+
+projectdocs/v1016-plan-review.md: Status updated to "Not yet implemented" (was "Ready to implement"). Comma assumption for UserNames replaced with concrete resolution: GROUP_CONCAT(DISTINCT UserName) + .Replace(",", " · ") in C#.
+
+Next action: Commit and push. GitHub Actions will build, produce Jellyfin.Plugin.ChiggiStats.zip, and update manifest.json checksum for v1.0.20. After workflow succeeds, create GitHub release v1.0.20 tagged v1.0.20.

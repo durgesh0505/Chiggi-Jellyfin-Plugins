@@ -12,9 +12,13 @@ const ChiggiStatsPage = {
     },
 
     getPlaybackFilters: function (view) {
+        const checkedBoxes = Array.from(view.querySelectorAll('#csMtMovies, #csMtEpisodes, #csMtAudio'))
+            .filter(cb => cb.checked)
+            .map(cb => cb.value);
+
         return {
             userId: view.querySelector('#csUserSelect').value || undefined,
-            mediaType: view.querySelector('#csMediaTypeSelect').value || undefined,
+            mediaTypes: checkedBoxes.length < 3 ? checkedBoxes : undefined,
             startDate: view.querySelector('#csStartDate').value || undefined,
             endDate: view.querySelector('#csEndDate').value || undefined
         };
@@ -22,11 +26,45 @@ const ChiggiStatsPage = {
 
     buildUrl: function (path, params) {
         const url = ApiClient.getUrl(path);
-        const query = Object.entries(params || {})
-            .filter(entry => entry[1] !== undefined && entry[1] !== null && entry[1] !== '')
-            .map(entry => encodeURIComponent(entry[0]) + '=' + encodeURIComponent(entry[1]))
-            .join('&');
-        return query ? url + '?' + query : url;
+        const parts = [];
+        Object.entries(params || {}).forEach(function (entry) {
+            const key = entry[0];
+            const val = entry[1];
+            if (val === undefined || val === null || val === '') return;
+            if (Array.isArray(val)) {
+                val.forEach(function (v) {
+                    parts.push(encodeURIComponent(key) + '=' + encodeURIComponent(v));
+                });
+            } else {
+                parts.push(encodeURIComponent(key) + '=' + encodeURIComponent(val));
+            }
+        });
+        return parts.length > 0 ? url + '?' + parts.join('&') : url;
+    },
+
+    debounce: function (fn, delay) {
+        let timer;
+        return function () {
+            clearTimeout(timer);
+            timer = setTimeout(fn, delay);
+        };
+    },
+
+    triggerReload: function (view) {
+        if (ChiggiStatsPage.state.activeTab === 'playback') {
+            ChiggiStatsPage.state.playbackOffset = 0;
+            ChiggiStatsPage.loadPlayback(view);
+        } else if (ChiggiStatsPage.state.activeTab === 'overview') {
+            ChiggiStatsPage.loadOverview(view);
+        }
+    },
+
+    syncCheckboxDisabled: function (view) {
+        const checkboxes = Array.from(view.querySelectorAll('#csMtMovies, #csMtEpisodes, #csMtAudio'));
+        const checkedCount = checkboxes.filter(cb => cb.checked).length;
+        checkboxes.forEach(function (cb) {
+            cb.disabled = checkedCount === 1 && cb.checked;
+        });
     },
 
     fetchJson: function (path, params) {
@@ -407,32 +445,37 @@ const ChiggiStatsPage = {
 };
 
 export default function (view) {
+    // Single debounced reload per view — coalesces rapid filter changes into one request
+    const debouncedReload = ChiggiStatsPage.debounce(function () {
+        ChiggiStatsPage.triggerReload(view);
+    }, 300);
+
     view.querySelectorAll('[data-tab]').forEach(button => {
         button.addEventListener('click', function () {
             ChiggiStatsPage.selectTab(view, this.dataset.tab);
         });
     });
 
-    view.querySelector('#csApplyFilters').addEventListener('click', function () {
-        if (ChiggiStatsPage.state.activeTab === 'playback') {
-            ChiggiStatsPage.state.playbackOffset = 0;
-            ChiggiStatsPage.loadPlayback(view);
-        } else {
-            ChiggiStatsPage.loadOverview(view);
-        }
+    // Debounced change listeners — all filter controls auto-apply on change
+    view.querySelector('#csUserSelect').addEventListener('change', debouncedReload);
+    view.querySelector('#csStartDate').addEventListener('change', debouncedReload);
+    view.querySelector('#csEndDate').addEventListener('change', debouncedReload);
+    view.querySelectorAll('#csMtMovies, #csMtEpisodes, #csMtAudio').forEach(function (cb) {
+        cb.addEventListener('change', function () {
+            ChiggiStatsPage.syncCheckboxDisabled(view);
+            debouncedReload();
+        });
     });
 
+    // Reset: explicit user action — no debounce, re-checks all boxes, calls triggerReload directly
     view.querySelector('#csResetFilters').addEventListener('click', function () {
         view.querySelector('#csUserSelect').value = '';
-        view.querySelector('#csMediaTypeSelect').value = '';
+        view.querySelectorAll('#csMtMovies, #csMtEpisodes, #csMtAudio').forEach(function (cb) {
+            cb.checked = true;
+            cb.disabled = false;
+        });
         ChiggiStatsPage.setDefaultDates(view);
-
-        if (ChiggiStatsPage.state.activeTab === 'playback') {
-            ChiggiStatsPage.state.playbackOffset = 0;
-            ChiggiStatsPage.loadPlayback(view);
-        } else {
-            ChiggiStatsPage.loadOverview(view);
-        }
+        ChiggiStatsPage.triggerReload(view);
     });
 
     view.querySelector('#csPlaybackPrev').addEventListener('click', function () {
@@ -465,6 +508,7 @@ export default function (view) {
 
     view.addEventListener('viewshow', function () {
         ChiggiStatsPage.setDefaultDates(view);
+        ChiggiStatsPage.syncCheckboxDisabled(view);
         ChiggiStatsPage.loadUsers(view).finally(function () {
             ChiggiStatsPage.selectTab(view, ChiggiStatsPage.state.activeTab);
         });
